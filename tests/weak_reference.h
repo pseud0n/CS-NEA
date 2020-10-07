@@ -1,4 +1,4 @@
-cout << "---- TEST: Create 5 objects to check reference counting and weak references\n";
+TEST_REPR("Create 5 objects to check reference counting and weak references");
 UL::Object *object1 = new UL::Object(99);
 UL::Object *object2 = new UL::Object("foo");
 UL::Object *object3 = new UL::Object("bar");

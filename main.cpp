@@ -3,6 +3,7 @@ clang++-7 -pthread -std=c++2a -Wall -Wextra  -o main main.cpp && ./main
 
 */
 
+#include <initializer_list>
 #include <unordered_map>
 #include <unordered_set>
 #include <functional>
@@ -19,11 +20,13 @@ clang++-7 -pthread -std=c++2a -Wall -Wextra  -o main main.cpp && ./main
 using std::cout;
 using std::cerr;
 
+#define TEST_REPR(str) cout << "--------TEST: " << str << "\n\n"
+
 #include "forward_decl.h" //Header file to forward-declare object
 #include "exceptions.h"
 #include "printer.h"
 
-#define OBJ_RET(x) [](){ return UL::Object(x); }
+#define OBJ_RET(x) [](){ return new UL::Object(x); }
 //If an object is optional, no need to construct it unless it is actuall used
 //Assumes that return type of lambda is a UL::Object, so this will be converted
  
@@ -65,8 +68,9 @@ namespace Utils {
         apply_impl<N>(
             std::forward<Lambda1Type>(lambda1),
             std::forward<Lambda2Type>(lambda2),
-            std::forward<TupleType>(tuple), //Perfect forwarding of tuple to account for lvalue reference or rvalue reference for tuple
-            std::make_index_sequence<N>{}, //Compile-time size_t sequence up to `N`
+            // template<std::size_t... Ints> using index_sequence = std::integer_sequence<std::size_t, Ints...>;
+            std::forward<TupleType>(tuple), // Perfect forwarding of tuple to account for lvalue reference or rvalue reference for tuple
+            std::make_index_sequence<N>{}, // Compile-time size_t sequence up to `N`
             std::make_index_sequence<std::tuple_size_v<std::remove_reference_t<TupleType> > - N>{}); //Compile-time size_t sequence up to tuple length - `N`
     }
 
@@ -74,23 +78,23 @@ namespace Utils {
 
 namespace UL {
 
-    const std::unordered_map<UL::Builtins, const std::unordered_set<UL::Builtins> > conversion_table {
-        {Builtins::null, {Builtins::number, Builtins::string}},
-        {Builtins::number, {Builtins::string}},
-        {Builtins::string, {Builtins::number, Builtins::string}},
-        {Builtins::cpp_function, {Builtins::string}},
-        {Builtins::bytecode_function, {Builtins::string}},
-        {Builtins::list, {Builtins::string}}
+    const std::unordered_map<UL::Types, const std::unordered_set<UL::Types> > conversion_table {
+        {Types::null,               {Types::number, Types::string}},
+        {Types::number,             {Types::string}},
+        {Types::string,             {Types::number, Types::string}},
+        {Types::cpp_function,       {Types::string}},
+        {Types::bytecode_function,  {Types::string}},
+        {Types::list,               {Types::string}}
     };
 
     namespace Conversions {
-        bool can_convert(int, Object* object) { return object->type == Builtins::number || object->type == Builtins::string; }
+        bool can_convert(int, Object* object) { return object->type == Types::number || object->type == Types::string; }
         bool can_convert(double, Object* object) { return can_convert(0, object); }
         bool can_convert(float, Object* object) { return can_convert(0, object); }
 
-        bool can_convert(std::string, Object* object) { return true; }
-        bool can_convert(char*, Object* object) { return true; }
-        bool can_convert(const char*, Object* object) { return true; }
+        bool can_convert(std::string, Object*) { return true; }
+        bool can_convert(char*, Object*) { return true; }
+        bool can_convert(const char*, Object*) { return true; }
     }
 
 
@@ -111,7 +115,7 @@ namespace UL {
         bool is_variadic; //Whether the function accepts any number of arguments beyond required + optional
         std::function<Object*(CppFunction*, std::vector<Object*>&)> function; //The function object containing the code
 
-        template <size_t MinArgCount, typename VariadicType, typename ... Types>
+        template <size_t MinArgCount, typename VariadicType, typename ...Types>
         bool assign_args(std::vector<Object*>& inputs, std::vector<VariadicType>* variadic_var, Types* ... outputs) {
             //outputs: tuple of pointers to give the inp, uts to
             //inputs: vector of Object pointers
@@ -154,11 +158,11 @@ namespace UL {
                 }, std::tuple<Types*...>(outputs...)
             );
 
-            cout << "Here " << variadic_var << "\n";
+            //cout << "Here " << variadic_var << "\n";
 
-            *variadic_var = std::vector<VariadicType>();
+            *variadic_var = std::vector<VariadicType>(); // vector should be initialised regardless of arguments entered
 
-            cout << "And Here\n";
+            //cout << "And Here\n";
             if (is_variadic && inputs.size() > MinArgCount + optional_arguments.size())
                 assign_variadic_args<VariadicType>(MinArgCount + optional_arguments.size(), inputs, variadic_var);
 
@@ -196,11 +200,51 @@ namespace UL {
             return function(this, args);
         }
     };
+    
+
+    template <typename ...KeyValuePairT> // Implicit
+    UserDefinedObject::UserDefinedObject(KeyValuePairT... names_and_values) {
+        attributes = {names_and_values...};
+    }
+
+    Object* UserDefinedObject::get_attribute(std::string name) const {
+        return attributes.at(name);
+    }
+
+    //*
+    template <typename AlternateReturnT>
+    AlternateReturnT UserDefinedObject::get_attribute(std::string name, AlternateReturnT alternate_value) const {
+        cout << "Looking for name: " << name << ", alternate value: " << alternate_value << "\n";
+        //if (has_attribute(name)) return (AlternateReturnT)(*get_attribute(name));
+        return alternate_value;
+    }
+    //*/
+
+    /*
+    std::string UserDefinedObject::get_attribute(std::string name, std::string alternate_value) const {
+        //cout << "Looking for name: " << name << ", alternate value: " << alternate_value << "\n";
+        if (has_attribute(name)) return (AlternateReturnT)(*get_attribute(name));
+        return alternate_value;
+    }
+    */
+
+    bool UserDefinedObject::has_attribute(std::string name) const {
+        return attributes.find(name) != attributes.end();
+        // If key not present, returns iterator at end value of map
+        // Concept of an 'end' is there for consistency with STL containers
+        // unordered_map does not have a conceptual 'end'
+    }
+
+    void UserDefinedObject::delete_attribute(std::string name) {
+        delete attributes[name]; // Delete object of heap pointer
+        attributes.erase(name); // Delete string and pointer (not what it points to though, hence the previous line)
+    }
+
 
     struct Location {
 		unsigned int reference_count;
 		static std::unordered_set<Location*> instances;
-        std::unordered_set<Object*> bound_objects; //All strongly or weakly-referenced heap pointers bound to the Location object
+        std::unordered_set<Object*> bound_objects; // All strongly or weakly-referenced heap pointers bound to the Location object
 
 		Location()
 			: reference_count(0) {
@@ -209,7 +253,7 @@ namespace UL {
 		}
 
         Location(Object* first_heap_pointer)
-            : reference_count(!first_heap_pointer->is_weak) { //false -> 1, true -> 0 (convenient, right?)
+            : reference_count(!first_heap_pointer->is_weak) { // false -> 1, true -> 0 (convenient, right?)
             cout << "NEWREF1 (" << (first_heap_pointer->is_weak ? "weak)  " : "strong) ") << this << " (object @ " << first_heap_pointer << "')\n";
             bound_objects.insert(first_heap_pointer);
             instances.insert(this);
@@ -256,53 +300,71 @@ namespace UL {
     auto Location::instances = std::unordered_set<Location*>(); //Construct set of locations
 
     Object::Object(std::nullptr_t, bool is_weak)
-        : type(Builtins::null), is_weak(is_weak), reference_location(new Location(this)) {
+        : type(Types::null), is_weak(is_weak), reference_location(new Location(this)) {
         cout << "Constructed null object (" << this << ")\n";
     }
 
     Object::Object(double x, bool is_weak) //default argument
-        : type(Builtins::number), is_weak(is_weak), reference_location(new Location(this)) {
+        : type(Types::number), is_weak(is_weak), reference_location(new Location(this)) {
         union_val.numerical_val = new double(x);
         cout << "Constructed numerical object '" << *this << "' (" << this << ")\n";
     }
 
     Object::Object(const char* string, bool is_weak) //Enter a string literal
-        : type(Builtins::string), is_weak(is_weak), reference_location(new Location(this)) {
+        : type(Types::string), is_weak(is_weak), reference_location(new Location(this)) {
         union_val.string_val = new std::string(string);
         cout << "Constructed string object '" << *this << "' (" << this << ")\n";
     }
 
     Object::Object(CppFunction* cpp_function, bool is_weak) //Enter a CppFunction heap pointer
-        : type(Builtins::cpp_function), is_weak(is_weak), reference_location(new Location(this)) {
+        : type(Types::cpp_function), is_weak(is_weak), reference_location(new Location(this)) {
         cout << "Constructed C++ function object '" << *this << "' (" << this << ")\n";
         union_val.function_val = cpp_function; //cpp_function should be a heap pointer
     }
 
     Object::Object(ByteCodeFunction* bc_function, bool is_weak)
-        : type(Builtins::bytecode_function), is_weak(is_weak), reference_location(new Location(this)) {
+        : type(Types::bytecode_function), is_weak(is_weak), reference_location(new Location(this)) {
         union_val.bytecode_val = bc_function;
         cout << "Constructed bytecode function object '" << *this << "' (" << this << ")\n";
     }
+
+    Object::Object(UserDefinedObject* cls, bool is_weak)
+        : type(Types::user_defined_object), is_weak(is_weak), reference_location(new Location(this)) {
+        union_val.udo_val = cls;
+    }
+
+    template <typename T>
+    Object::Object(std::initializer_list<T> i_list, bool is_weak)
+        : type(Types::list), is_weak(is_weak), reference_location(new Location(this)) {
+        union_val.list_val = new std::vector<T>();
+        union_val.list_val->insert(union_val.list_val->end(), i_list.begin(), i_list.end());
+    }
+
+    /*
+    template <typename ... T>
+    Object::Object(std::tuple<T...>, bool is_weak) {
+    }
+    */
 
     Object::Object(const Object* from, bool force_weak)
         : type(from->type), is_weak(force_weak || from->is_weak), reference_location(from->reference_location) {
         *reference_location += this;
         switch (type) {
-            case Builtins::null:
+            case Types::null:
                 break;
-            case Builtins::number:
+            case Types::number:
                 union_val.numerical_val = new double(*from->union_val.numerical_val);
                 break;
-            case Builtins::string:
+            case Types::string:
                 *union_val.string_val = *from->union_val.string_val;
                 break;
-            case Builtins::cpp_function:
+            case Types::cpp_function:
                 union_val.function_val = new CppFunction(*from->union_val.function_val);
                 break;
-            case Builtins::bytecode_function:
+            case Types::bytecode_function:
                 *union_val.bytecode_val = *from->union_val.bytecode_val;
                 break;
-            case Builtins::list:
+            case Types::list:
                 *union_val.list_val = *from->union_val.list_val;
                 break;
             default:
@@ -315,22 +377,25 @@ namespace UL {
         *reference_location -= this; //Overloaded dereference on UL::Location object on heap
         cout << "Destructed object '" << *this << "' (" << this << ")\n";
         switch (type) {
-            case Builtins::null:
+            case Types::null:
                 break;
-            case Builtins::number:
+            case Types::number:
                 delete union_val.numerical_val;
                 break;
-            case Builtins::string:
+            case Types::string:
                 delete union_val.string_val;
                 break;
-            case Builtins::cpp_function:
+            case Types::cpp_function:
                 delete union_val.function_val;
                 break;
-            case Builtins::bytecode_function:
+            case Types::bytecode_function:
                 delete union_val.bytecode_val;
                 break;
-            case Builtins::list:
+            case Types::list:
                 delete union_val.list_val;
+                break;
+            case Types::user_defined_object:
+                delete union_val.udo_val;
                 break;
         }
     }
@@ -341,7 +406,7 @@ namespace UL {
 
     Object::operator std::string() const {
         //cout << "OBJECT " << *this << ": " << this->type << " ";
-        if (type == Builtins::string)
+        if (type == Types::string)
             return *union_val.string_val;
         std::stringstream stream;
         stream << *this;
@@ -354,7 +419,7 @@ namespace UL {
 
     /*
     void Object::push_back(Object *object) {
-        if (type == Builtins::list) {
+        if (type == Types::list) {
 
         } else
             cerr << "Oh no!\n";
@@ -362,17 +427,32 @@ namespace UL {
     }
     */
 
+    /*
+    namespace Classes {
+
+        template <size_t DirectBaseClassCount>
+        struct BuiltinClass {
+            const std::array<BuiltinClass, DirectBaseClassCount> direct_bases;
+            std::unordered_map<std::string>
+
+            BuiltinClass(const std::array<BuiltinClass, DirectBaseClassCount> direct_bases)
+                : direct_bases(direct_bases) {
+
+            }
+        };
+
+        //auto Class = new BuiltinClass();
+
+        //auto Object = new BuiltinClass();
+    }*/
+
 }
 
 int main() {
     cout << "Standard: " << __cplusplus << ", compilation started at: " << __TIME__ << " UTC\n";
     //cout.setstate(std::ios_base::failbit);
 
-    #include "tests/cpp_function.h"
-
-    //std::vector<const char*> v{"hello", "there", "general", "kenobi"};
-    //cout << v << "\n";
-
+    //#include "tests/cpp_function.h"
 
     cout.clear();
     cout << "\nFINISHED\n";

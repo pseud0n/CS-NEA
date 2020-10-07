@@ -2,7 +2,7 @@
 #define OBJECT_H
 
 namespace UL {
-    enum class Builtins {
+    enum class Types {
         null=0,
 		number,
 		/*
@@ -41,20 +41,24 @@ namespace UL {
 		 */
         bytecode_function,
 
-		list
+		list,
 		/*
 		 * This type means that the object's union value is an array
 		 * To be converted to another type, each object must be convertible to the same type
 		 * If the types within a list are not all the same or convertible to a common type, use 'o' as type
 		 */
+
+         user_defined_object
 	};
 
     struct Object;
 
-    enum class Builtins;
+    enum class Types;
     struct ByteCodeFunction;
     struct CppFunction;
     struct Location;
+
+    struct UserDefinedObject;
 
     union ObjectUnion {
         std::string *string_val; //std::string pointer
@@ -62,11 +66,22 @@ namespace UL {
         CppFunction *function_val; //pointer to a C++ function
         ByteCodeFunction *bytecode_val; //pointer to a bytecode function, which stores a start val & number of lines
         std::vector<Object> *list_val; //pointer to a vector of objects
+        UserDefinedObject *udo_val;
+    };
+
+    struct UserDefinedObject {
+        std::unordered_map<std::string, Object*> attributes;
+        template <typename ... KeyValuePairT> UserDefinedObject(KeyValuePairT...);
+        Object* get_attribute(std::string) const;
+        template <typename AlternateReturnT> AlternateReturnT get_attribute(std::string name, AlternateReturnT alternate_value) const;
+        //std::string get_attribute(std::string name, std::string alternate_value);
+        bool has_attribute(std::string name) const;
+        void delete_attribute(std::string name);
     };
 
     struct Object {
         ObjectUnion union_val;
-        Builtins type;
+        Types type;
         bool is_weak;
         Location *reference_location;
         Object(std::nullptr_t, bool=false);
@@ -74,8 +89,11 @@ namespace UL {
         Object (const char*, bool=false);
         Object(CppFunction*, bool=false);
         Object(ByteCodeFunction*, bool=false);
-        Object(std::vector<Object>*, bool=false);
-        Object(std::vector<Object>, bool=false);
+        Object(UserDefinedObject*, bool=false);
+        //Object(std::initializer_list<Object*>, bool=false)
+        template <typename T> Object(std::initializer_list<T> , bool=false);
+        template <typename ... T> Object(std::tuple<T...>, bool=false);
+        //Object(std::vector<Object>, bool=false);
         Object(const Object*, bool=false);
         ~Object();
         operator int() const;
@@ -88,6 +106,6 @@ namespace UL {
 }
 
 std::ostream& operator <<(std::ostream& stream, const UL::Object& object);
-std::ostream& operator <<(std::ostream&, const UL::Builtins) ;
+std::ostream& operator <<(std::ostream&, const UL::Types);
 
 #endif

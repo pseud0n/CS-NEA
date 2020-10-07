@@ -45,8 +45,6 @@ namespace UL {
         ArgExc(const char* msg) { message =  msg; }
         void operator ()() { cerr << "ArgExc" << ": " << message << "\n"; }
     };
-
-    ...
     */
 }
 

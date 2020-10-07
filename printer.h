@@ -1,14 +1,14 @@
 #ifndef PRINTER_H
 #define PRINTER_H
 
-#define HEADER(type, name) std::ostream& operator <<(std::ostream& stream, type name)
+#define OSTREAM_HEADER(type, name) std::ostream& operator <<(std::ostream& stream, type name)
 
 
 #define STD_OVERLOAD(type)                                                                                              \
     template <typename ElementT>                                                                                        \
-    HEADER(const std::type<ElementT>&, object) {                                                                      \
+    OSTREAM_HEADER(const std::type<ElementT>&, object) {                                                                \
         stream << "{";                                                                                                  \
-        for (auto it = object.begin(); it != object.end(); ++it) { /* auto: std::type<ElementT>::iterator */          \
+        for (auto it = object.begin(); it != object.end(); ++it) { /* auto: std::type<ElementT>::iterator */            \
             if (it != object.begin()) stream << ", ";                                                                   \
             stream << *it;                                                                                              \
         }                                                                                                               \
@@ -19,28 +19,44 @@ STD_OVERLOAD(vector)
 STD_OVERLOAD(unordered_set)
 
 namespace UL {
-    HEADER(const Object&, object) {
+    OSTREAM_HEADER(const UserDefinedObject&, user_defined_object) {
+        //return stream << user_defined_object.get_attribute<std::string>("string", "<No available repr>");
+        //return stream << user_defined_object.get_attribute("string", "<No available repr>");
+        return stream << "<A string>";
+        /*
+        user_defined_object.get_attribute("string", (std::string)[&user_defined_object](){
+            std::stringstream stream;
+            stream << "<UDO " << &user_defined_object << ">";
+            return stream.str();
+        }());
+        */
+    }
+
+    OSTREAM_HEADER(const Object&, object) {
         if (object.union_val.numerical_val == 0) //Since all pointers are stored in the same place, it doesn't matter which pointer is chosen
             return stream << "<void object>";
         switch (object.type) {
-            case Builtins::null:
+            case Types::null:
                 return stream << "<None>";
-            case Builtins::number:
+            case Types::number:
                 return stream << *object.union_val.numerical_val;
-            case Builtins::string:
+            case Types::string:
                 return stream << "\"" << *object.union_val.string_val << "\"";
-            case Builtins::cpp_function:
+            case Types::cpp_function:
                 return stream << "<Cpp Function " << &object << ">";
                 break;
-            case Builtins::bytecode_function:
+            case Types::bytecode_function:
                 return stream << "<BC Function " << &object << ">";
                 break;
-            case Builtins::list:
+            case Types::user_defined_object:
+                return stream << *object.union_val.udo_val;
+                break;
+            case Types::list:
                 std::stringstream sstream;
                 sstream << "{";
                 for (auto it = object.union_val.list_val->begin(); it != object.union_val.list_val->end(); ++it) {
                     if (it != object.union_val.list_val->begin()) sstream << ", ";
-                    sstream << *it; //Recursion!
+                    sstream << *it; // Recursion! (stringstream is subclass of ostream)
                 }
                 sstream << "}";
                 return stream << sstream.str();
@@ -48,23 +64,24 @@ namespace UL {
         }
     }
 
-    #define BI_CASE(type) case Builtins::type: return stream << #type;
+    #define TP_CASE(type) case Types::type: return stream << #type;
 
-    HEADER(Builtins, type) {
+    OSTREAM_HEADER(Types, type) {
         switch(type) {
-            BI_CASE(null)
-            BI_CASE(number)
-            BI_CASE(string)
-            BI_CASE(cpp_function)
-            BI_CASE(bytecode_function)
-            BI_CASE(list)
+            TP_CASE(null)
+            TP_CASE(number)
+            TP_CASE(string)
+            TP_CASE(cpp_function)
+            TP_CASE(bytecode_function)
+            TP_CASE(list)
+            TP_CASE(user_defined_object)
         }
     }
 
 }
 
-#undef BI_CASE
+#undef TP_CASE
 #undef STD_OVERLOAD
-#undef HEADER
+#undef OSTREAM_HEADER
 
 #endif

@@ -1,5 +1,6 @@
- cout << "---- TEST: Create and call variadic function\n";
- auto func = new UL::Object(new UL::CppFunction({OBJ_RET(10), OBJ_RET(11), OBJ_RET(33)}, true, DY_LMBD {
+TEST_REPR("Create and call variadic function");
+
+auto func = new UL::Object(new UL::CppFunction({OBJ_RET(10), OBJ_RET(11), OBJ_RET(33)}, true, DY_LMBD {
     //arguments: std::vector<UL::Object*>
     int a, b, c, d, e, f;
     std::vector<std::string> extra_args;
