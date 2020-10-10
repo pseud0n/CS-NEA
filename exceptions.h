@@ -1,0 +1,64 @@
+/*
+ * exceptions.h
+ *
+ *  Created on: 10 Oct 2020
+ *      Author: alexs
+ */
+
+#ifndef EXCEPTIONS_H_
+#define EXCEPTIONS_H_
+
+
+#define EXC_CLASS(name, base) struct name : base { \
+    name() { message = "<No message>"; } \
+    name(const char* msg) { message = msg; } \
+	~name() {} \
+    void operator()() const { cerr << #name << " : " << message << "\n"; }};
+
+namespace UL {
+
+    struct VirtualExc {
+        const char *message;
+        virtual ~VirtualExc() = 0;
+        virtual void operator ()() const = 0;
+    };
+
+    EXC_CLASS(BaseExc, VirtualExc)
+        EXC_CLASS(RunTimeExc, BaseExc)
+            EXC_CLASS(ArgExc, RunTimeExc)
+        EXC_CLASS(CompileTimeExc, BaseExc)
+            EXC_CLASS(APIExc, CompileTimeExc)
+
+    /*
+    EXC_CLASS(BaseExc, VirtualExc)
+    EXC_CLASS(RunTimeExc, BaseExc)
+    EXC_CLASS(ArgExc, BaseExc)
+    */
+
+    //Expands to
+
+    /*
+    struct BaseExc : public VirtualExc {
+        BaseExc() { message = "<No message>"; }
+        BaseExc(const char* msg) { message =  msg; }
+        void operator ()() { cerr << "BaseExc" << ": " << message << "\n"; }
+    };
+
+    struct RuntimeExc : public BaseExc {
+        RuntimeExc() { message = "<No message>"; }
+        RuntimeExc(const char* msg) { message =  msg; }
+        void operator ()() { cerr << "RunTimeExc" << ": " << message << "\n"; }
+    };
+
+    struct ArgExc : public RuntimeExc {
+        ArgExc() { message = "<No message>"; }
+        ArgExc(const char* msg) { message =  msg; }
+        void operator ()() { cerr << "ArgExc" << ": " << message << "\n"; }
+    };
+    */
+}
+
+#undef EXC_CLASS
+
+
+#endif /* EXCEPTIONS_H_ */
