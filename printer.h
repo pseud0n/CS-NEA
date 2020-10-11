@@ -80,6 +80,10 @@ namespace UL {
         }
     }
 
+    OSTREAM_HEADER(OPTR, optr) {
+    	return stream << "OPTR " << *optr.object_ptr;
+    }
+
 }
 
 #undef TP_CASE

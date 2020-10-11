@@ -28,11 +28,11 @@ using std::cerr;
 #include "printer.h"
 
 #define OBJ_RET(x) [](){ return OPTR(x) }
-//If an object is optional, no need to construct it unless it is actuall used
+//If an object is optional, no need to construct it unless it is actually used
 //Assumes that return type of lambda is a UL::Object, so this will be converted
 
 #define DY_LMBD [](UL::CppFunction* argument_data, std::vector<OPTR>& arguments)
-//Macro for defnining the lambda for a CppFunction as DY_LMBD{ /* stuff */ }
+//Macro for defining the lambda for a CppFunction as DY_LMBD{ /* stuff */ }
 
 namespace Utils {
     /* Commented is a 'possible implementation' of std::apply from <utility> from https://en.cppreference.com/w/cpp/utility/apply
@@ -60,13 +60,17 @@ namespace Utils {
         template <size_t N, typename Lambda1Type, typename Lambda2Type, typename TupleType, std::size_t... FirstPartIndices, std::size_t... SecondPartIndices>
         constexpr void apply_impl(Lambda1Type&& lambda1, Lambda2Type&& lambda2, TupleType&& tuple, std::index_sequence<FirstPartIndices...>, std::index_sequence<SecondPartIndices...>) {
             std::invoke(std::forward<Lambda1Type>(lambda1), std::get<FirstPartIndices>(std::forward<TupleType>(tuple))...);
+            // Invoke first function with elements from the tuple with indexes in the first index_sequence
             std::invoke(std::forward<Lambda2Type>(lambda2), std::get<SecondPartIndices + N>(std::forward<TupleType>(tuple))...);
+            // Invoke second function  with elements from the tuple with indexes in the second index_sequence
+
+
         }
     }
 
     template <size_t N, typename Lambda1Type, typename Lambda2Type, typename TupleType>
     constexpr void inplace_tuple_slice_apply(Lambda1Type&& lambda1, Lambda2Type&& lambda2, TupleType&& tuple) {
-        apply_impl<N>(
+        apply_impl<N, Lambda1Type, Lambda2Type, TupleType>(
             std::forward<Lambda1Type>(lambda1),
             std::forward<Lambda2Type>(lambda2),
             // template<std::size_t... Ints> using index_sequence = std::integer_sequence<std::size_t, Ints...>;
@@ -118,6 +122,10 @@ namespace UL {
 
         template <size_t MinArgCount, typename VariadicType, typename... TypesT>
         bool assign_args(std::vector<OPTR>& inputs, std::vector<VariadicType>* variadic_var, TypesT&... outputs) {
+
+        	cout << "Assigning args:\n";
+        	cout << sizeof...(outputs) << "\n";
+
             // outputs: tuple of pointers to give the inputs to
             // inputs: vector of Object pointers
             //cout << "?" << MinArgCount + optional_arguments.size() - inputs.size() - 1 << "\n";
@@ -133,36 +141,44 @@ namespace UL {
             // Sets var pointers to first `min_arg_count + optional_arguments.size()` values of `inputs`
             // Sets var pointers to remaining optional arguments
             size_t argument_traverser = 0;
+            cout << __PRETTY_FUNCTION__ << "\n";
+            //MinArgCount = 3
+
+            //std::function<void(TypesT&...)>
+
             Utils::inplace_tuple_slice_apply<MinArgCount>(
-                [&argument_traverser, &inputs](TypesT&... var_pointer) {
-                    ((var_pointer = inputs[argument_traverser++]), ...); // Assigns each variable the current (required) entered argument
-                },
-                [&inputs, this](TypesT&... var_pointer) { //`this` is a pointer so it's captured by value
-                    // All optional arguments that remain are handled here
-                    size_t index = 0;
-                    //cout << MinArgCount + optional_arguments.size() - inputs.size() - 1 << " " << 6 - MinArgCount << "\n";
-                    ((
-                        [&var_pointer, this, &index, &inputs]() { // Lambda in a lambda!
-                            //cout << "INDEX " << index << " " << (MinArgCount + optional_arguments.size() - inputs.size() - 1) << "\n";
-                            if (index < MinArgCount + optional_arguments.size() - inputs.size() - 1) { // If this optional argument was passed explicitly
-                                var_pointer = inputs[index + MinArgCount]; // Set pointer to
-                            }
-                            else { // If this optional argument was not passed and instead is set to a default value
-                                var_pointer = optional_arguments[index];
-                            }
-                            ++index;
-                        }()
-                        //cout << (var_pointer = *(optional_arguments[index++ + MinArgCount + optional_arguments.size() - inputs.size() - 1]())) << "\n"
-                    ), ...);
-                    //Number of optional arguments explicitly entered = `inputs.size() - min_arg_count`
-                }, std::tuple<TypesT&...>(outputs...) // Note that the tuple container is able to store references
-            );
+				[&argument_traverser, &inputs](auto&... var_pointer) {
+					((var_pointer = inputs[argument_traverser++].cast<decltype(var_pointer)>()), ...); // Assigns each variable the current (required) entered argument
+				},
+            	[&inputs, this](auto&... var_pointer) { // `this` is a pointer so it's captured by value
+					// All optional arguments that remain are handled here
+					// Takes 6 integer references
+					size_t index = 0;
+					((
+						[&var_pointer, this, &index, &inputs]() { // Lambda in a lambda!
+							//cout << "INDEX " << index << " " << (MinArgCount + optional_arguments.size() - inputs.size() - 1) << "\n";
+							if (index < MinArgCount + optional_arguments.size() - inputs.size() - 1) { // If this optional argument was passed explicitly
+								var_pointer = inputs[index + MinArgCount].cast<decltype(var_pointer)>(); // Set pointer to
+							}
+							else { // If this optional argument was not passed and instead is set to a default value
+								var_pointer = optional_arguments[index].cast<decltype(var_pointer)>();
+							}
+							++index;
+						}()
+						//cout << (var_pointer = *(optional_arguments[index++ + MinArgCount + optional_arguments.size() - inputs.size() - 1]())) << "\n"
+					), ...);
+					//Number of optional arguments explicitly entered = `inputs.size() - min_arg_count`
+				},
+				std::tuple<TypesT&...>(outputs...)
+			); // Note that the tuple container is able to store references
+
 
             //cout << "Here " << variadic_var << "\n";
 
             *variadic_var = std::vector<VariadicType>(); // vector should be initialised regardless of arguments entered
 
             //cout << "And Here\n";
+            //cout << is_variadic << " " << inputs.size() << " " << MinArgCount << " " << optional_arguments.size();
             if (is_variadic && inputs.size() > MinArgCount + optional_arguments.size())
                 assign_variadic_args<VariadicType>(MinArgCount + optional_arguments.size(), inputs, variadic_var);
 
@@ -178,7 +194,7 @@ namespace UL {
             //cout << "VC: " << inputs.size() - non_variadic_count << "\n";
             for (size_t variadic_argument_traverser = non_variadic_count; variadic_argument_traverser < inputs.size(); ++variadic_argument_traverser) {
                 //cout << "VAT: " << variadic_argument_traverser << " " << *inputs[variadic_argument_traverser] << " is now ";
-                variadic_var->push_back(inputs[variadic_argument_traverser]);
+                variadic_var->push_back(inputs[variadic_argument_traverser].cast<VariadicType>());
                 //variadic_var->push_back("test");
                 //cout << (variadic_var->back()) << "\n";
             }
@@ -192,7 +208,7 @@ namespace UL {
         }
         */
 
-        CppFunction(std::vector<OPTR> optional_arguments, bool is_variadic, std::function<OPTR(CppFunction*, std::vector<OPTR>)> func)
+        CppFunction(std::vector<OPTR> optional_arguments, bool is_variadic, std::function<OPTR(CppFunction*, std::vector<OPTR>&)> func)
             : optional_arguments(optional_arguments), is_variadic(is_variadic), function(func) {
 
         }
@@ -206,9 +222,19 @@ namespace UL {
         }
     };
 
-    template <typename ...KeyValuePairT> // Implicit
+    ObjectPointer ObjectPointer::operator ()(std::vector<OPTR>& arguments) { //OPTR operator ()(std::vector<OPTR>&);
+    	return (*object_ptr->union_val.function_val)(arguments);
+    }
+
+    /*
+    template <typename... KeyValuePairT> // KeyValuePairT: std::pair<std::string, ObjectPointer>
     UserDefinedObject::UserDefinedObject(KeyValuePairT... names_and_values)
     	: attributes(names_and_values...) {
+    }
+    */
+
+    UserDefinedObject::UserDefinedObject(std::unordered_map<std::string, OPTR> attributes)
+    	: attributes(attributes) {
     }
 
     OPTR UserDefinedObject::get_attribute(std::string name) const {
@@ -461,6 +487,15 @@ namespace UL {
         }
     }
 
+    void Object::operator ++() {
+    	++reference_count;
+    }
+
+    void Object::operator --() {
+    	if (reference_count == 1) delete this; // If the last reference is being removed
+    	else --reference_count;
+    }
+
     Object::operator int() const {
         return *union_val.numerical_val;
     }
@@ -522,13 +557,33 @@ namespace UL {
 }
 
 int main() {
-    #include "pre_decl.h"
-    cout << "Standard: " << __cplusplus << ", compilation started at: " << __TIME__ << " UTC\n";
-    //cout.setstate(std::ios_base::failbit);
+	cout << "Standard: " << __cplusplus << ", compilation started at: " << __TIME__ << " UTC\n------------------------------------------\n\n";
+	{
+		#include "pre_decl.h"
+		//cout.setstate(std::ios_base::failbit);
 
-    //#include "tests/cpp_function.h"
+		//#include "tests/cpp_function.h"
 
-    //for (auto el: cached_numbers) cout << el << " ";
+		OPTR func = OPTR(new UL::CppFunction({10, 11, 33}, true, DY_LMBD {
+			// arguments: std::vector<UL::Object*>
+			int a, b, c, d, e, f; // These 6 have to be (convertible to) integers
+			std::vector<std::string> extra_args;
+			// arguments: std::vector<OPTR>&, extra_args: std::vector<std::string>
+			if(!argument_data->assign_args<3>(arguments, &extra_args, a, b, c, d, e, f)) {
+				UL::ArgExc("Function takes 6+ integrals")();
+				return OPTR(nullptr);
+			}
+			cout << "a-f: " << a << " " << b << " " << c << " " << d << " " << e << " " << f << "\n";
+			cout << extra_args << "\n";
+			return OPTR(a + b + c + d + e + f);
+		}));
+
+		std::vector<OPTR> arguments = {8, 3, 2, 1, 11, 100, "hello", "there", 5};
+
+		OPTR out = func(arguments);
+		cout << out << "\n";
+
+		}
 
     cout.clear();
     cout << "\nFINISHED\n";

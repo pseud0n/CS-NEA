@@ -100,6 +100,8 @@ namespace UL {
         Object(const Object* /*, bool=false*/);
         //Object* make_reference();
         ~Object();
+        void operator ++();
+        void operator --();
         operator int() const;
         operator std::string () const;
         OPTR operator ()(std::vector<OPTR>);
@@ -108,6 +110,7 @@ namespace UL {
     };
 
     class ObjectPointer { // Should be used instead of object pointers
+    friend std::ostream& operator <<(std::ostream&, ObjectPointer);
     private:
         // This type should be predominantly used on the stack
         Object* object_ptr; // The associated object
@@ -132,13 +135,15 @@ namespace UL {
         }
 
         ~ObjectPointer() {
-            if (!is_weak) --object_ptr->reference_count;
+            if (!is_weak) --*object_ptr;
         }
 
         ObjectPointer(const ObjectPointer& from, bool force_strong=false)
             : object_ptr(from.object_ptr), is_weak(!force_strong && from.is_weak) {
-            if (!is_weak) ++object_ptr->reference_count;
+            if (!is_weak) ++*object_ptr;
         }
+
+        ObjectPointer operator ()(std::vector<OPTR>&);
 
         template <typename ConstructFromT>
         void create_from_blank(ConstructFromT construct_from, bool is_weak=false) {
@@ -147,14 +152,15 @@ namespace UL {
         }
 
         template <typename CastT>
-        CastT cast() const {
-            return static_cast<CastT>(*object_ptr);
+        typename std::remove_reference<CastT>::type cast() const {
+            return static_cast<typename std::remove_reference<CastT>::type>(*object_ptr);
         }
     };
 
     struct UserDefinedObject {
         std::unordered_map<std::string, OPTR> attributes;
-        template <typename ... KeyValuePairT> UserDefinedObject(KeyValuePairT...);
+        //template <typename... KeyValuePairT> UserDefinedObject(KeyValuePairT...);
+        UserDefinedObject(std::unordered_map<std::string, OPTR>);
         OPTR get_attribute(std::string) const;
         template <typename AlternateReturnT> AlternateReturnT get_attribute(std::string name, AlternateReturnT alternate_value) const;
         //std::string get_attribute(std::string name, std::string alternate_value);

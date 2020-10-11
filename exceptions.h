@@ -1,10 +1,3 @@
-/*
- * exceptions.h
- *
- *  Created on: 10 Oct 2020
- *      Author: alexs
- */
-
 #ifndef EXCEPTIONS_H_
 #define EXCEPTIONS_H_
 
@@ -12,14 +5,13 @@
 #define EXC_CLASS(name, base) struct name : base { \
     name() { message = "<No message>"; } \
     name(const char* msg) { message = msg; } \
-	~name() {} \
     void operator()() const { cerr << #name << " : " << message << "\n"; }};
 
 namespace UL {
 
     struct VirtualExc {
         const char *message;
-        virtual ~VirtualExc() = 0;
+        //virtual ~VirtualExc() = 0;
         virtual void operator ()() const = 0;
     };
 
@@ -61,4 +53,4 @@ namespace UL {
 #undef EXC_CLASS
 
 
-#endif /* EXCEPTIONS_H_ */
+#endif

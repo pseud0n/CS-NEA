@@ -1,6 +1,8 @@
 #ifndef PRE_DECL_H_
 #define PRE_DECL_H_
 
+cout.setstate(std::ios_base::failbit);
+
 //auto blank_function = new UL::CppFunction({}, false, DY_LMBD { return new UL::Object(nullptr); });
 
 #define MIN_CACHED_VALUE -5
@@ -10,6 +12,10 @@ std::array<OPTR, 1 + MAX_CACHED_VALUE - MIN_CACHED_VALUE> cached_numbers;
 
 for (int i = MIN_CACHED_VALUE; i <= MAX_CACHED_VALUE; ++i)
 	cached_numbers[i - MIN_CACHED_VALUE].create_from_blank(i);
+
+cout.clear();
+
+cout << "Constructed integers in range " << MIN_CACHED_VALUE << " to " << MAX_CACHED_VALUE << " inclusive\n";
 
 /*
 
