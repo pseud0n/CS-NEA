@@ -1,8 +1,9 @@
 #ifndef PRINTER_H_
 #define PRINTER_H_
 
-#define OSTREAM_HEADER(type, name) std::ostream& operator <<(std::ostream& stream, type name)
+//void print_box(std::string msg) cout << '┏' <<  << "┓\n┃"  "┃\n┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛\n\n";
 
+#define OSTREAM_HEADER(type, name) std::ostream& operator <<(std::ostream& stream, type name)
 
 #define STD_OVERLOAD(type)                                                                                              \
     template <typename ElementT>                                                                                        \
@@ -34,7 +35,7 @@ namespace UL {
 
     OSTREAM_HEADER(const Object&, object) {
         if (object.union_val.numerical_val == 0) //Since all pointers are stored in the same place, it doesn't matter which pointer is chosen
-            return stream << "<void object>";
+            return stream << "<void>";
         switch (object.type) {
             case Types::null:
                 return stream << "<None>";
@@ -84,7 +85,16 @@ namespace UL {
     	return stream << "OPTR " << *optr.object_ptr;
     }
 
+    const char* r_optr_strength(const OPTR& optr) {
+        return optr.is_weak ? "weak" : "strong";
+    }
+
+    const char* r_optr_constness(Object* object) {
+        return object->is_const ? "const" : "non-const";
+    }
+
 }
+
 
 #undef TP_CASE
 #undef STD_OVERLOAD

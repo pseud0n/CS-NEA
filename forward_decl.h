@@ -58,8 +58,6 @@ namespace UL {
     enum class Types;
     struct ByteCodeFunction;
     struct CppFunction;
-    struct Location;
-    class ObjectPointer;
 
     struct UserDefinedObject;
 
@@ -78,26 +76,39 @@ namespace UL {
         An Object can be used in 2 ways: on the heap or on the stack.
         A heap Object should only be created as part of an ObjectPointer/OPTR to get reference counted
         A stack Object should not be wrapped by an OPTR since it will get deallocated anyway
+        Note that a wrapped Object will be explicitly deleted (which UB if allocated on the stack)
+
         The strength of a stack Object is ignored since it won't be reference-counted
         The strength of a heap Object is important and is tracked by an OPTR
         This is why a heap Object must be wrapped by and OPTR, which automatically deletes the object
         A stack Object still has a reference count, but it is unused
         */
+        friend const char* r_optr_constness(const OPTR&);
+
         ObjectUnion union_val;
         Types type;
+        bool is_const;
+        /*
+        References to this object will all be weak and ownership may not be transferred.
+        A const object is used when the object is part of something built-in.
+        For example, member functions of built-in types would not be reference counted.
+        It would be pointless to keep track of references because we know that at least one reference will always remain
+        The original OPTR is a strong reference but all subsequent references are weak references
+        
+        */
         //bool is_weak;
         //Location *reference_location;
         unsigned int reference_count;
-        Object(std::nullptr_t /*, bool=false*/);
-        Object(double /*, bool=false*/);
-        Object(int);
-        Object(const char* /*, bool=false*/);
-        Object(CppFunction* /*, bool=false*/);
-        Object(ByteCodeFunction* /*, bool=false*/);
-        Object(UserDefinedObject* /*, bool=false*/);
-        template <typename T> Object(std::initializer_list<T> /*, bool=false*/);
-        template <typename ... T> Object(std::tuple<T...> /*, bool=false*/);
-        Object(const Object* /*, bool=false*/);
+        Object(std::nullptr_t, bool=false);
+        Object(double, bool=false);
+        Object(int, bool=false);
+        Object(const char*, bool=false);
+        Object(CppFunction*, bool=false);
+        Object(ByteCodeFunction*, bool=false);
+        Object(UserDefinedObject*, bool=false);
+        template <typename T> Object(std::initializer_list<T>, bool=false);
+        template <typename ... T> Object(std::tuple<T...>, bool=false);
+        Object(const Object*, bool=false);
         //Object* make_reference();
         ~Object();
         void operator ++();
@@ -107,54 +118,6 @@ namespace UL {
         OPTR operator ()(std::vector<OPTR>);
         //operator double();
         Object operator *(const Object&);
-    };
-
-    class ObjectPointer { // Should be used instead of object pointers
-    friend std::ostream& operator <<(std::ostream&, ObjectPointer);
-    private:
-        // This type should be predominantly used on the stack
-        Object* object_ptr; // The associated object
-
-    public:
-        bool is_weak;
-
-        ObjectPointer()
-        	: object_ptr(0), is_weak(false) {
-        	// Invalid object - do not use!
-        }
-
-        ObjectPointer(Object* object_ptr, bool is_weak=false)
-            : object_ptr(object_ptr), is_weak(is_weak) {
-            cout << "Created ObjectPointer " << this << "\n";
-        }
-
-        template <typename ConstructorT>
-        ObjectPointer(ConstructorT construct_from, bool is_weak=false)
-			: is_weak(is_weak) {
-            object_ptr = new Object(construct_from);
-        }
-
-        ~ObjectPointer() {
-            if (!is_weak) --*object_ptr;
-        }
-
-        ObjectPointer(const ObjectPointer& from, bool force_strong=false)
-            : object_ptr(from.object_ptr), is_weak(!force_strong && from.is_weak) {
-            if (!is_weak) ++*object_ptr;
-        }
-
-        ObjectPointer operator ()(std::vector<OPTR>&);
-
-        template <typename ConstructFromT>
-        void create_from_blank(ConstructFromT construct_from, bool is_weak=false) {
-        	object_ptr = new Object(construct_from);
-			this->is_weak = is_weak;
-        }
-
-        template <typename CastT>
-        typename std::remove_reference<CastT>::type cast() const {
-            return static_cast<typename std::remove_reference<CastT>::type>(*object_ptr);
-        }
     };
 
     struct UserDefinedObject {
