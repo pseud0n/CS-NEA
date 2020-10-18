@@ -107,7 +107,7 @@ namespace UL {
             object_counts.push_back(1);
         }
 
-        void remove_pair(Object* object) {
+        void remove_pair(Object*) {
             stored_objects.pop_back();
             object_counts.pop_back();
         }
@@ -281,6 +281,7 @@ namespace UL {
 
     ObjectPointer::ObjectPointer()
         : object_ptr(0), is_weak(false) {
+    	cout << "Constructing blank OPTR " << this << "\n";
         // Invalid in this state - do not use!
         // Default constructor required in some cases
     }
@@ -296,47 +297,69 @@ namespace UL {
         */
         //if (is_weak) object_ptr->reference_count = 0;
         object_ptr->is_const = make_const || object_ptr->is_const;
-        cout << "Created ObjectPointer " << this << " (" << (is_weak? "weak" : "strong") << ", " << (object_ptr->is_const ? "const" : "non-const") <<  ")\n";
+        cout << "Constructing ObjectPointer " << this << " (" << (is_weak? "weak" : "strong") << ", " << (object_ptr->is_const ? "const" : "non-const") <<  ")\n";
     }
 
     #define NUMERIC_CONSTRUCTOR(type) /* Input can be negative - underflow is not a problem */                                                  \
-        ObjectPointer::ObjectPointer(type number, bool make_const) {                                                                           \
-        cout << "Constructing OPTR from " << #type << " " << number << "\n";                                                                \
-        /*this->is_weak = is_weak; */                                                                                                           \
-        object_ptr->is_const = make_const || object_ptr->is_const; \
-        if (number >= MIN_CACHED_INTEGER_VALUE && number <= MAX_CACHED_INTEGER_VALUE) { /* Has already been cached */                       \
-            /* e.g. number = -5.0 & MIN_CACHED_INTEGER_VALUE = -5 then index = 0 */                                                         \
-            object_ptr = cached_numbers[static_cast<size_t>(number) - MIN_CACHED_INTEGER_VALUE].object_ptr;                                              \
-            /* size_t is unsigned so cast will cause an underflow if number < 0 (but it doesn't matter since it will then overflow) */      \
-            ++*object_ptr; /* Increment number of references for cached integer being pointed to */                                         \
-        } else                                                                                                                              \
-            object_ptr = new Object(number);                                                                                                \
+        ObjectPointer::ObjectPointer(type number, bool /*make_const*/)																				\
+    		: is_weak(false) {   																																\
+			cout << "Constructing OPTR from " << #type << " " << number << "\n";                                                                \
+			/*this->is_weak = is_weak; */                                                                                                       \
+			object_ptr->is_const = true;/*make_const || object_ptr->is_const;*/ \
+			if (number >= MIN_CACHED_INTEGER_VALUE && number <= MAX_CACHED_INTEGER_VALUE) { /* Has already been cached */                       \
+				/* e.g. number = -5.0 & MIN_CACHED_INTEGER_VALUE = -5 then index = 0 */                                                         \
+				object_ptr = cached_numbers[static_cast<size_t>(number) - MIN_CACHED_INTEGER_VALUE].object_ptr;                                              \
+				cout << "\tThis value is already cached (" << object_ptr << ")\n"; \
+				/* size_t is unsigned so cast will cause an underflow if number < 0 (but it doesn't matter since it will then overflow) */      \
+				++*object_ptr; /* Increment number of references for cached integer being pointed to */                                         \
+			} else                                                                                                                              \
+				object_ptr = new Object(number, true);                                                                                                \
         }
 
 
     //ObjectPointer::ObjectPointer(double number, bool is_weak) { NUMERIC_CONSTRUCTOR(double) }
     //ObjectPointer::ObjectPointer(int number, bool is_weak) { NUMERIC_CONSTRUCTOR(int) }
 
-    NUMERIC_CONSTRUCTOR(int)
-    NUMERIC_CONSTRUCTOR(double)
+    //NUMERIC_CONSTRUCTOR(int)
+    //NUMERIC_CONSTRUCTOR(double)
+    ObjectPointer::ObjectPointer(int number, bool make_const) {
+		// If cached, should be weak
+		// If not cached, if const, strong, if not const, strong
+
+		/*this->is_weak = is_weak; */
+		//object_ptr->is_const = true;/*make_const || object_ptr->is_const;*/
+		cout << "Constructing OPTR from " << "int" << " " << number << "\n";
+		if (number >= MIN_CACHED_INTEGER_VALUE && number <= MAX_CACHED_INTEGER_VALUE) { /* Has already been cached */
+			/* e.g. number = -5.0 & MIN_CACHED_INTEGER_VALUE = -5 then index = 0 */
+			is_weak = true;
+			object_ptr = cached_numbers[static_cast<size_t>(number) - MIN_CACHED_INTEGER_VALUE].object_ptr;
+			cout << "\tThis value is already cached (" << object_ptr << ")\n";
+			/* size_t is unsigned so cast will cause an underflow if number < 0 (but it doesn't matter since it will then overflow) */
+			//++*object_ptr; /* Increment number of references for cached integer being pointed to */
+		} else {
+			is_weak = false; // Strong reference to new object
+			object_ptr = new Object(number, make_const);
+		}
+    }
 
     #undef NUMERIC_CONSTRUCTOR
 
     template <typename ConstructorT>
     ObjectPointer::ObjectPointer(ConstructorT construct_from, bool make_const)
-        : is_weak(false) {
+        : is_weak(false) { // Must be strong since it is initially the only reference to the object
         object_ptr = new Object(construct_from, make_const);
         cout << "Constructing OPTR from arbitrary type (" << object_ptr << ")\n";   
         //if (is_weak) object_ptr->reference_count = 0;
     }
 
     ObjectPointer::~ObjectPointer() {
+    	if (object_ptr == NULL) return; // Ignore blank OPTR (since pointer will be NULL)
         cout << "Deleting (" << r_optr_strength(*this) << ") OPTR " << this << " wrapping " << object_ptr << " (" << *object_ptr << ") with refcount " << object_ptr->reference_count;
-        if (!is_weak) {
+        if (is_weak) {
+        	cout << "\n";
+        } else {
             cout << " to " << object_ptr->reference_count - 1 << "\n";
             --*object_ptr;
-        } else {
-            cout << "\n";
         }
     }
 
@@ -369,7 +392,8 @@ namespace UL {
 
     template <typename ConstructFromT>
     void ObjectPointer::create_from_blank(ConstructFromT construct_from, bool is_weak) {
-        object_ptr = new Object(construct_from);
+    	cout << "Turing OPTR " << this << " into object (" << construct_from << ")\n";
+        object_ptr = new Object(construct_from, true); // OPTR should be blank
         this->is_weak = is_weak;
     }
 
@@ -644,6 +668,7 @@ namespace UL {
     }
 
     void Object::operator ++() {
+    	cout << "Incref'ing " << this << " (" << *this << ") to " << reference_count + 1 << "\n";
     	++reference_count;
         ++Tracker::object_counts[std::distance(Tracker::stored_objects.begin(), std::find(Tracker::stored_objects.begin(), Tracker::stored_objects.end(), this))];
     }
@@ -658,7 +683,7 @@ namespace UL {
             return;
         }
         */
-        cout << "DECREF " << this << " (" << *this << ") to " << reference_count - 1 << "\n";
+        cout << "Decref'ing " << this << " (" << *this << ") to " << reference_count - 1 << "\n";
     	if (reference_count == 1) delete this; // If the last reference is being removed
     	else {
             --reference_count;
@@ -774,23 +799,23 @@ int main() {
 	
     {
 
-//#include "pre_decl.h"
-//#include "tests/cpp_function.h"
+		#include "pre_decl.h"
+		//#include "tests/cpp_function.h"
 
-    UL::Tracker::repr();
+		UL::Tracker::repr();
 
-    //OPTR f(new UL::CppFunction({ }, false, DY_LMBD{ return OPTR("It's a me"); }));
+		//OPTR f(new UL::CppFunction({ }, false, DY_LMBD{ return OPTR("It's a me"); }));
 
-    //cout << f() << "\n";
+		//cout << f() << "\n";
 
-    OPTR x("hello", true);
-    OPTR y(x);
-    OPTR z(x);
+		OPTR x = 5;
+		//OPTR y = 5;
+		//OPTR z = 6;
 
 
-    UL::Tracker::repr();
+		UL::Tracker::repr();
 
-    cout << "\nEXITED LOCAL SCOPE\n";
+		cout << "\nEXITED LOCAL SCOPE\n";
 	}
 
     UL::Tracker::repr();
