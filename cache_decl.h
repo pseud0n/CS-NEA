@@ -1,6 +1,7 @@
 #ifndef PRE_DECL_H_
 #define PRE_DECL_H_
 
+using std::cout;
 
 cout.setstate(std::ios_base::failbit);
 
@@ -11,7 +12,7 @@ for (int i = MIN_CACHED_INTEGER_VALUE; i <= MAX_CACHED_INTEGER_VALUE; ++i)
 
 cout.clear();
 
-cout << "Constructed integers in range " << MIN_CACHED_INTEGER_VALUE << " to " << MAX_CACHED_INTEGER_VALUE << " inclusive\n\n";
+cout << "Cached integers in range " << MIN_CACHED_INTEGER_VALUE << " to " << MAX_CACHED_INTEGER_VALUE << " inclusive\n";
 
 /*
 

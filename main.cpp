@@ -1,6 +1,6 @@
 /*
 clang++-7 -pthread -std=c++2a -Wall -Wextra  -o main main.cpp && ./main
-
+thecompleteuniversityguide.co.uk
 */
 
 #include <initializer_list>
@@ -23,26 +23,59 @@ using std::cerr;
 
 #define TEST_REPR(str) cout << "--------TEST: " << str << "\n\n"
 
-#define MIN_CACHED_INTEGER_VALUE -5
-#define MAX_CACHED_INTEGER_VALUE 10
+#define MIN_CACHED_INTEGER_VALUE 0
+#define MAX_CACHED_INTEGER_VALUE 15
 
 #include "object_pointer.h"
 
 #define OPTR UL::ObjectPointer
 
-
-namespace UL { std::array<OPTR, 1 + MAX_CACHED_INTEGER_VALUE - MIN_CACHED_INTEGER_VALUE> cached_numbers; }
-
 #include "forward_decl.h" //Header file to forward-declare object
 #include "exceptions.h"
 #include "printer.h"
+
+namespace UL {
+    namespace Tracker {
+        //For debugging, vector used, which has O(n) complexity, but it prints the values in the right order, which is probably more important when debugging
+
+        //std::unordered_map<Object*, unsigned int> remaining_objects = { };
+
+        std::vector<Object*> stored_objects = { };
+        std::vector<unsigned int> object_counts = { };
+
+        void add_pair(Object* object) {
+            cout << "Adding pair: " << *object << "\n";
+            stored_objects.push_back(object);
+            object_counts.push_back(1);
+        }
+
+        void remove_pair(Object*) {
+            stored_objects.pop_back();
+            object_counts.pop_back();
+        }
+
+        void repr() {
+            cout << "{";
+            for (size_t i = 0; i < stored_objects.size(); ++i) {
+                if (i != 0) cout << ", ";
+                cout << stored_objects[i] << " (" << *stored_objects[i] << ", " << (stored_objects[i]->is_const ? "const" : "non-const") << ") : " << object_counts[i];
+            }
+            cout << "}\n";
+        }
+    }
+
+
+    std::array<OPTR, 1 + MAX_CACHED_INTEGER_VALUE - MIN_CACHED_INTEGER_VALUE> cached_numbers;
+    auto null_obj(new Object(nullptr, true));
+    OPTR null_optr(nullptr);
+}
 
 #define OBJ_RET(x) [](){ return OPTR(x) }
 //If an object is optional, no need to construct it unless it is actually used
 //Assumes that return type of lambda is a UL::Object, so this will be converted
 
-#define DY_LMBD [](UL::CppFunction* argument_data, const std::vector<OPTR>& arguments)
-//Macro for defining the lambda for a CppFunction as DY_LMBD{ /* stuff */ }
+#define DY_LMBD [](UL::CppFunction* argument_data, const std::vector<UL::Object*>& arguments)
+//Macro for defining the lambda for a CppFunction as `DY_LMBD { /* stuff */ }`
 
 namespace Utils {
     /* Commented is a 'possible implementation' of std::apply from <utility> from https://en.cppreference.com/w/cpp/utility/apply
@@ -62,7 +95,7 @@ namespace Utils {
     {
         return detail::apply_impl(
             std::forward<F>(f), std::forward<Tuple>(t),
-            std::make_index_sequence<std::tuple_size_v<std::remove_reference_t<Tuple>>>{ });
+            std::make_index_sequence<std::tuple_size_v<std::remove_reference_t<Tuple>>>{});
     }
     */
 
@@ -96,36 +129,11 @@ namespace Utils {
 }
 
 namespace UL {
-    namespace Tracker {
-        //std::unordered_map<Object*, unsigned int> remaining_objects = { };
-
-        std::vector<Object*> stored_objects = { };
-        std::vector<unsigned int> object_counts = { };
-
-        void add_pair(Object* object) {
-            stored_objects.push_back(object);
-            object_counts.push_back(1);
-        }
-
-        void remove_pair(Object*) {
-            stored_objects.pop_back();
-            object_counts.pop_back();
-        }
-
-        void repr() {
-            cout << "{";
-            for (size_t i = 0; i < stored_objects.size(); ++i) {
-                if (i != 0) cout << ", ";
-                cout << stored_objects[i] << " (" << *stored_objects[i] << ", " << (stored_objects[i]->is_const ? "const" : "non-const") << ") : " << object_counts[i];
-            }
-            cout << "}\n";
-        }
-    }
 
     const std::unordered_map<UL::Types, const std::unordered_set<UL::Types> > conversion_table {
         {Types::null,               {Types::number, Types::string}},
         {Types::number,             {Types::string}},
-        {Types::string,             {Types::number, Types::string}},
+        {Types::string,             {Types::number, Types::string, Types::list}},
         {Types::cpp_function,       {Types::string}},
         {Types::bytecode_function,  {Types::string}},
         {Types::list,               {Types::string}}
@@ -150,99 +158,18 @@ namespace UL {
         size_t start_line, code_length;
     };
 
+
     struct CppFunction {
-        // Functor class which represents a function written in C++
-        const std::vector<OPTR> optional_arguments;
+        /*
+        Functor class which represents a function written in C++
+        A CppFunction accepts any number of arguments and input variables of C++ types
+        */
+        const std::vector<Object*> optional_arguments;
         //Vector of lambdas returning UL::Object (implicitly converts return value) to stop objects from being constructed if they're not actually used
         //All additional arguments go to default values and then to the variable storing variadic arguments
         bool is_variadic; //Whether the function accepts any number of arguments beyond required + optional
-        std::function<OPTR(CppFunction*, const std::vector<OPTR>&)> function; //The function object containing the code
+        std::function<OPTR(CppFunction*, const std::vector<Object*>&)> function; //The function object containing the code
 
-        template <size_t MinArgCount, typename VariadicType, typename... TypesT>
-        bool assign_args(const std::vector<OPTR>& inputs, std::vector<VariadicType>* variadic_var, TypesT&... outputs) {
-
-        	//cout << "Assigning args:\n";
-        	//cout << sizeof...(outputs) << "\n";
-
-            // outputs: tuple of pointers to give the inputs to
-            // inputs: vector of Object pointers
-            //cout << "?" << MinArgCount + optional_arguments.size() - inputs.size() - 1 << "\n";
-            //cout << "is " << *optional_arguments[1]()->union_val.numerical_val << " " << *optional_arguments[2]()->union_val.numerical_val << "\n";
-            if (inputs.size() < MinArgCount)
-			    return false; //If the entered arguments are too small
-            if (inputs.size() > MinArgCount + optional_arguments.size() && !is_variadic)
-                return false; //Too many arguments for a non-variadic function
-            //if (((void*)variadic_var == 0) == is_variadic) //If no pointer has been given for extra arguments, it must not be a variadic function and vice versa
-                //return false; //Equivalent to `variadic_var != nulltptr XNOR arguments_data.is_variadic`
-
-
-            // Sets var pointers to first `min_arg_count + optional_arguments.size()` values of `inputs`
-            // Sets var pointers to remaining optional arguments
-            size_t argument_traverser = 0;
-            cout << __PRETTY_FUNCTION__ << "\n";
-            //MinArgCount = 3
-
-            //std::function<void(TypesT&...)>
-
-            #define CURRENT_TYPE std::tuple_element_t<MinArgCount, std::tuple<TypesT&...>>
-            // I wouldn't want to make you read the macro's value over and over (it's for your own good, I promise :p )
-
-            Utils::inplace_tuple_slice_apply<MinArgCount>(
-				[&argument_traverser, &inputs](auto&... var_pointer) {
-					((var_pointer = inputs[argument_traverser++].cast<CURRENT_TYPE>()), ...); // Assigns each variable the current (required) entered argument
-				},//std::tuple_element_t<N, std::tuple<Ts&...>>
-            	[&inputs, this](auto&... var_pointer) { // `this` is a pointer so it's captured by value
-					// All optional arguments that remain are handled here
-					// Takes 6 integer references
-					size_t index = 0;
-					((
-						[&var_pointer, this, &index, &inputs]() { // Lambda in a lambda!
-							//cout << "INDEX " << index << " " << (MinArgCount + optional_arguments.size() - inputs.size() - 1) << "\n";
-							if (index < MinArgCount + optional_arguments.size() - inputs.size() - 1) { // If this optional argument was passed explicitly
-								var_pointer = inputs[index + MinArgCount].cast<CURRENT_TYPE>(); // Set pointer to
-							}
-							else { // If this optional argument was not passed and instead is set to a default value
-								var_pointer = optional_arguments[index].cast<CURRENT_TYPE>();
-							}
-							++index;
-						}()
-						//cout << (var_pointer = *(optional_arguments[index++ + MinArgCount + optional_arguments.size() - inputs.size() - 1]())) << "\n"
-					), ...);
-					//Number of optional arguments explicitly entered = `inputs.size() - min_arg_count`
-				},
-				std::tuple<TypesT&...>(outputs...)
-			); // Note that the tuple container is able to store references
-
-            #undef CURRENT_TYPE
-
-            //cout << "Here " << variadic_var << "\n";
-
-            *variadic_var = std::vector<VariadicType>(); // vector should be initialised regardless of arguments entered
-
-            //cout << "And Here\n";
-            //cout << is_variadic << " " << inputs.size() << " " << MinArgCount << " " << optional_arguments.size();
-            if (is_variadic && inputs.size() > MinArgCount + optional_arguments.size())
-                assign_variadic_args<VariadicType>(MinArgCount + optional_arguments.size(), inputs, variadic_var);
-
-            return true;
-        }
-
-        template <typename>
-        void assign_varidic_args(size_t, const std::vector<OPTR>&, void*) {
-        }
-
-        template <typename VariadicType>
-        void assign_variadic_args(size_t non_variadic_count, const std::vector<OPTR>& inputs, std::vector<VariadicType>* variadic_var) {
-            //cout << "VC: " << inputs.size() - non_variadic_count << "\n";
-            for (size_t variadic_argument_traverser = non_variadic_count; variadic_argument_traverser < inputs.size(); ++variadic_argument_traverser) {
-                //cout << "VAT: " << variadic_argument_traverser << " " << *inputs[variadic_argument_traverser] << " is now ";
-                variadic_var->push_back(inputs[variadic_argument_traverser].cast<VariadicType>());
-                //variadic_var->push_back("test");
-                //cout << (variadic_var->back()) << "\n";
-            }
-
-            cout << variadic_var->size() << "\n";
-        }
 
         /*
         CppFunction(std::vector<std::function<Object()> > optional_arguments, bool is_variadic, std::function<Object*(CppFunction*, std::vector<UL::Object*>&)> func)
@@ -250,25 +177,149 @@ namespace UL {
         }
         */
 
-        CppFunction(std::vector<OPTR> optional_arguments, bool is_variadic, std::function<OPTR(CppFunction*, const std::vector<OPTR>&)> func)
+        CppFunction(std::vector<Object*> optional_arguments, bool is_variadic, std::function<OPTR(CppFunction*, const std::vector<Object*>&)> func)
             : optional_arguments(optional_arguments), is_variadic(is_variadic), function(func) {
-
+            print("CF CONSTRUCT", function ? "callable" : "not callable");
         }
 
-        CppFunction(const CppFunction& from) //Copy constructor
+        CppFunction(const CppFunction& from) // Copy constructor
             : optional_arguments(from.optional_arguments), is_variadic(from.is_variadic) {
         }
 
         ~CppFunction() {
-            cout << "Destructing CppFunction " << this << "\n";
+            cout << "Destructing CppFunction " << this << '\n';
+            for (Object* object : optional_arguments)
+                delete object; // Optional arguments stored on heap and automatically deleted
         }
 
-        OPTR operator ()(std::vector<OPTR> args) {
+        OPTR operator ()(const std::vector<Object*>& args) {
+            //[](UL::CppFunction* argument_data, const std::vector<UL::Object*>& arguments) { ... }
+            print(args, (function ? "callable" : "not callable"));
             return function(this, args);
         }
         
-        OPTR operator ()() {
+        OPTR operator ()() { // Simple function which takes no arguments
             return function(this, { });
+        }
+
+        //OPTR operator ()(OPTR self, ) 
+        template <size_t MinArgCount, typename... TypesT>
+        bool assign_args(const std::vector<Object*>& inputs, TypesT&... outputs) {
+            /*
+            This function is used when assigning arguments in a non-variadic function.
+            It takes the inputs and outputs and simply maps them (also taking optional arguments into account)
+            The OPTRs passed in are treated as objects since we don't need to reference count here
+            */
+
+            //print("Assigning args:", inputs.size(), MinArgCount);
+        	//print(sizeof...(outputs),  __PRETTY_FUNCTION__);
+
+            std::string error = repr_arg_error(MinArgCount, optional_arguments.size(), is_variadic, inputs.size());
+            //print("Error:", error, error.empty());
+
+            if (!error.empty()) {
+                print(error);
+                return false;
+            }
+
+            // outputs: tuple of pointers to give the inputs to
+            // inputs: vector of Object pointers
+            //cout << "?" << MinArgCount + optional_arguments.size() - inputs.size() - 1 << "\n";
+            //cout << "is " << *optional_arguments[1]()->union_val.numerical_val << " " << *optional_arguments[2]()->union_val.numerical_val << "\n";
+            //if (((void*)variadic_var == 0) == is_variadic) //If no pointer has been given for extra arguments, it must not be a variadic function and vice versa
+                //return false; //Equivalent to `variadic_var != nulltptr XNOR arguments_data.is_variadic`
+
+
+            // Sets var pointers to first `min_arg_count + optional_arguments.size()` values of `inputs`
+            // Sets var pointers to remaining optional arguments
+            size_t argument_traverser = 0;
+
+            //#define CURRENT_TYPE std::tuple_element_t<MinArgCount, std::tuple<TypesT&...>>
+            #define CURRENT_TYPE decltype(var_pointer)
+            // I wouldn't want to make you read the macro's value over and over (it's for your own good, I promise :p )
+
+            //print("yo");
+
+            Utils::inplace_tuple_slice_apply<MinArgCount>(
+				[&argument_traverser, &inputs](auto&... var_pointer) {
+					((var_pointer = inputs[argument_traverser++]->cast<CURRENT_TYPE>()), ...); // Assigns each variable the current (required) entered argument
+				},//std::tuple_element_t<N, std::tuple<Ts&...>>
+            	[&inputs, this](auto&... var_pointer) { // `this` is a pointer so it's captured by value
+					// All optional arguments that remain are handled here (arguments beyond minimum)
+					size_t index = 0;
+                    print("vectors:", repr_deref(inputs), repr_deref(optional_arguments));
+                    /*
+                    e.g.    MinArgCount = 3, inputs = {13, 14, 15, 16} & optional_arguments = {5, 6}
+                            then the resulting values should be {13, 14, 15, 16, 6}
+                    */
+                    ((
+                        [&](){
+                            print("> ", index, inputs.size(), MinArgCount, MinArgCount + optional_arguments.size() - inputs.size());
+                            if (index < MinArgCount + optional_arguments.size() - inputs.size() ) { // If this optional argument was passed explicitly, i.e. not left as default
+                                //print(index, MinArgCount + optional_arguments.size(), inputs.size());
+                                print("Explicit:", index);
+								var_pointer = inputs[index + MinArgCount]->cast<CURRENT_TYPE>(); // Set variable to explicitly passed argument
+							}
+							else { // If this optional argument was not passed and instead is set to a default value
+                                print("Implicit", index);
+								var_pointer = optional_arguments[index]->cast<CURRENT_TYPE>();
+							}
+							++index;
+                        }()
+                    ), ...);
+                    /*/
+					((
+						[this, &index, &inputs]() { // Lambda in a lambda!
+							//cout << "INDEX " << index << " " << (MinArgCount + optional_arguments.size() - inputs.size() - 1) << "\n";
+							if (index < MinArgCount + optional_arguments.size() - inputs.size() - 1) { // If this optional argument was passed explicitly, i.e. not left as default
+                                //print(index, MinArgCount + optional_arguments.size(), inputs.size());
+								var_pointer = inputs[index]->cast<CURRENT_TYPE>(); // Set pointer to
+							}
+							else { // If this optional argument was not passed and instead is set to a default value
+                                //print("index", index);
+								var_pointer = optional_arguments[index]->cast<CURRENT_TYPE>();
+							}
+							++index;
+						}()
+						//cout << (var_pointer = *(optional_arguments[index++ + MinArgCount + optional_arguments.size() - inputs.size() - 1]())) << "\n"
+					), ...);
+					//Number of optional arguments explicitly entered = `inputs.size() - min_arg_count`
+                    */
+				},
+				std::tuple<TypesT&...>(outputs...)
+			); // Note that the tuple container is able to store references
+
+            #undef CURRENT_TYPE
+            //cout << "Here!\n";
+
+            return true;
+        }
+
+        template <size_t MinArgCount, typename VariadicType, typename... TypesT>
+        bool assign_variadic_args(const std::vector<Object*>& inputs, std::vector<VariadicType>* variadic_var, TypesT&... outputs) {
+            *variadic_var = std::vector<VariadicType>(); // vector should be initialised regardless of arguments entered
+
+            //cout << "And Here\n";
+            //cout << is_variadic << " " << inputs.size() << " " << MinArgCount << " " << optional_arguments.size();
+            if (inputs.size() > MinArgCount + optional_arguments.size())
+                assign_variadic_args<VariadicType>(MinArgCount + optional_arguments.size(), inputs, variadic_var);
+            else
+                return false;
+
+            return assign_args<MinArgCount>(inputs, outputs...);
+        }
+
+        template <typename VariadicType>
+        void assign_variadic_args(size_t non_variadic_count, const std::vector<Object*>& inputs, std::vector<VariadicType>* variadic_var) {
+            //cout << "VC: " << inputs.size() - non_variadic_count << "\n";
+            for (size_t variadic_argument_traverser = non_variadic_count; variadic_argument_traverser < inputs.size(); ++variadic_argument_traverser) {
+                //cout << "VAT: " << variadic_argument_traverser << " " << *inputs[variadic_argument_traverser] << " is now ";
+                variadic_var->push_back(inputs[variadic_argument_traverser]->cast<VariadicType>());
+                //variadic_var->push_back("test");
+                //cout << (variadic_var->back()) << "\n";
+            }
+
+            cout << variadic_var->size() << "\n";
         }
     };
 
@@ -286,19 +337,6 @@ namespace UL {
         // Default constructor required in some cases
     }
 
-    ObjectPointer::ObjectPointer(Object* object_ptr, bool make_const)
-        : object_ptr(object_ptr), is_weak(false) {
-        /*
-        make_const     object_ptr->is_const    result
-        false           false                   false
-        false           true                    true
-        true            false                   true
-        true            true                    true
-        */
-        //if (is_weak) object_ptr->reference_count = 0;
-        object_ptr->is_const = make_const || object_ptr->is_const;
-        cout << "Constructing ObjectPointer " << this << " (" << (is_weak? "weak" : "strong") << ", " << (object_ptr->is_const ? "const" : "non-const") <<  ")\n";
-    }
 
     #define NUMERIC_CONSTRUCTOR(type) /* Input can be negative - underflow is not a problem */                                                  \
         ObjectPointer::ObjectPointer(type number, bool /*make_const*/)																				\
@@ -344,11 +382,31 @@ namespace UL {
 
     #undef NUMERIC_CONSTRUCTOR
 
+    ObjectPointer::ObjectPointer(std::nullptr_t, bool)
+    // Does not matter what bool value is since it has to be weak. First argument must be nullptr (only value with nullptr_t type)
+        : object_ptr(null_obj), is_weak(true) {
+        cout << "Constructing null OPTR (" << this << ")\n";
+    }
+    
+    ObjectPointer::ObjectPointer(Object* object_ptr, bool make_const)
+        : object_ptr(object_ptr), is_weak(false) {
+        /*
+        make_const     object_ptr->is_const    result
+        false           false                   false
+        false           true                    true
+        true            false                   true
+        true            true                    true
+        */
+        //if (is_weak) object_ptr->reference_count = 0;
+        object_ptr->is_const = make_const || object_ptr->is_const;
+        cout << "Constructing OPTR " << this << " (" << (is_weak? "weak" : "strong") << ", " << (object_ptr->is_const ? "const" : "non-const") <<  ")\n";
+    }
+
     template <typename ConstructorT>
     ObjectPointer::ObjectPointer(ConstructorT construct_from, bool make_const)
         : is_weak(false) { // Must be strong since it is initially the only reference to the object
         object_ptr = new Object(construct_from, make_const);
-        cout << "Constructing OPTR from arbitrary type (" << object_ptr << ")\n";   
+        cout << "Constructing OPTR " << this << " from arbitrary type (" << object_ptr << ")\n";
         //if (is_weak) object_ptr->reference_count = 0;
     }
 
@@ -380,14 +438,18 @@ namespace UL {
         // If the underlying Object is
     }
 
-    //ObjectPointer::ObjectPointer operator ()(std::vector<OPTR>&);
+    //ObjectPointer::ObjectPointer operator ()(std::vector<Object*>&);
 
-    OPTR ObjectPointer::operator ()(const std::vector<OPTR>& args) {
+    OPTR ObjectPointer::operator ()(const std::vector<Object*>& args) {
         return (*object_ptr->union_val.function_val)(args);
     }
 
     OPTR ObjectPointer::operator ()() {
         return (*object_ptr->union_val.function_val)();
+    }
+
+    ObjectPointer::operator Object* () const {
+        return object_ptr;
     }
 
     template <typename ConstructFromT>
@@ -537,9 +599,15 @@ namespace UL {
 
     */
 
+    Object::Object(bool make_const)
+        : type(Types::blank) {
+        cout << "Constructed stem object (" << this << ")\n";
+        Tracker::add_pair(this);
+    }
+
     Object::Object(std::nullptr_t, bool make_const) // Initially weak: reference count starts at 1 still
     // Using (unsigned int)!is_const as the initial value for reference_count would not work since we require that is is finally decremented to zero and not overflowed
-        : type(Types::null), /*is_weak(is_weak),*/ is_const(make_const), reference_count(1) {
+        : type(Types::null), /*is_weak(is_weak),*/ is_const(true), reference_count(1) {
         cout << "Constructed null object (" << this << ")\n";
         Tracker::add_pair(this);
     }
@@ -558,7 +626,7 @@ namespace UL {
         Tracker::add_pair(this);
     }
 
-    Object::Object(const char* string, bool make_const) //Enter a string literal
+    Object::Object(std::string string, bool make_const) //Enter a string literal
         : type(Types::string), /*is_weak(is_weak),*/ is_const(make_const), reference_count(1) {
         union_val.string_val = new std::string(string);
         cout << "Constructed string object '" << *this << "' (" << this << ")\n";
@@ -598,6 +666,12 @@ namespace UL {
     Object::Object(std::tuple<T...>) {
     }
     */
+
+    Object::Object(const OPTR& from, bool make_const)
+        : type(from.object_ptr->type), union_val(from.object_ptr->union_val)  {
+
+
+    }
 
     Object::Object(const Object* from /*bool force_weak*/, bool make_const)
         : type(from->type), /*is_weak(force_weak || from->is_weak),*/ is_const(make_const), reference_count(1) {
@@ -692,11 +766,14 @@ namespace UL {
         
     }
 
-    /*
-    Object::operator int() const {
-        return *union_val.numerical_val;
+    OPTR Object::operator ()(const std::vector<Object*>& args) {
+        return (*union_val.function_val)(args); //Pass inputs by reference
     }
-    */
+
+    
+    Object::operator int() const {
+        return (int)*union_val.numerical_val;
+    }
 
     Object::operator std::string() const {
         //cout << "OBJECT " << *this << ": " << this->type << " ";
@@ -707,8 +784,13 @@ namespace UL {
         return stream.str();
     }
 
-    OPTR Object::operator ()(std::vector<OPTR> args) {
-        return (*union_val.function_val)(args); //Pass inputs by reference
+    Object::operator const Object* () const {
+        return this;
+    }
+
+    template <typename CastT>
+    typename std::remove_reference<CastT>::type Object::cast() const {
+        return static_cast<typename std::remove_reference<CastT>::type>(*this);
     }
 
 
@@ -723,16 +805,58 @@ namespace UL {
     */
 
     namespace Classes {
+        /*
+        When methods are retrieved from an object, the names an definitions need to be known.
+        A BuiltinClass is a container to store members.
+
+        All object may have any extra members added at any time.
+        When an object is an instance of a class, it is simply added to its member lookup graph (directed, acyclic)
+
+        An object has its own type, which is defined as the first object in its MLG that is not a superclass.
+        This is stored as a separate attribute
+
+        Suppose we have `x = SpecialNumber(10)`. SpecialNumber inherits from Number.
+        Number is an instance of Class and a subclass of Object.
+
+        When we look for an attribute of x, we first look at the dictionary of x.
+        If not found, we then ascend the graph, breadth-first.
+        The attribute is looked for in x's type, SpecialNumber, which is the second element, ascending from x.
+        
+        x.func(*args)
+        is the same as `SpecialNumber.func(func, *args)` if func belongs to the class not the instance
+        possibly `Number.func(func, *args)`
+
+        This function belongs to the class and so it is atomic.
+
+        x (SpecialNumber) < SpecialNumber (Class) <= Number (Class) < Class (Class) < Class (Class) < ...
+                                                                    <= Object (Class) < Class (Class) < ...
+                                                                                      <= Object (Class) < ...
+
+        */
 
         //template </*size_t DirectBaseClassCount, typename... PairPlaceholderT*/>
-        struct BuiltinClass {
-            const std::vector<BuiltinClass*> direct_bases; // Can not change
+        class BuiltinClass {
+        public:
+            const std::vector<BuiltinClass>& direct_bases; // Can not change
             std::unordered_map<std::string, OPTR> attributes; // Should not shrink or grow by values may change
+            
+            BuiltinClass(const std::vector<BuiltinClass>& bases)
+                : direct_bases(bases), attributes({}) {
+            }
 
-            BuiltinClass(std::vector<BuiltinClass*> direct_bases, std::unordered_map<std::string, OPTR> kv /*PairPlaceholderT... names_and_values*/)
+            void emplace(const std::string& key, Object* value) {
+                cout << "In emplace\n";
+                attributes.try_emplace(key, OPTR(value)); // Where OPTR is constructed in call an passed by reference into function
+                cout << "Finishing emplace\n";
+            }
+
+            /*
+            // Should emplace back pairs into blank map instead of constructing then moving temporary map
+            BuiltinClass(const std::initializer_list<BuiltinClass*> direct_bases, std::unordered_map<std::string, OPTR>& kv)
                 : direct_bases(direct_bases), attributes(kv) {
                 //attributes = { names_and_values... };
             }
+            */
 
             BuiltinClass(const BuiltinClass&) = delete;
 
@@ -744,83 +868,76 @@ namespace UL {
                 cout << "Called deleter\n";
                 UL::Tracker::repr();
             }
+
+            OPTR operator [](std::string&& attr_name) {
+                return attributes.at(attr_name);
+            }
         };
-
-        /*
-        A builtin type is interfaced through an OPTR and can be treated as one.
-        When creating a user-defined type, a built-in class can be inherited from.
-        It will have to be treated as a UL object in that instance.
-        Built-in types inheriting from other types will inherit from other BuiltinClass objects
-        */
-
-        //*
-
-        #define BLANK_RETURN_FN(return_val) OPTR(new UL::CppFunction({ }, false, DY_LMBD{ return OPTR(return_val); }), true)
-        // The functions should be weak references since they have no reason to be tracked
-        /*
-        BuiltinClass object(
-            { }, // No super classes - this is at the top of the hierarchy
-            {
-                //{ "init", BLANK_RETURN_FN(nullptr) },
-                { "type", BLANK_RETURN_FN("Object") }
-            }
-        );
-        
-        
-
-        BuiltinClass null(
-            { &object },
-            {
-                { "type", BLANK_RETURN_FN("Number") }
-            }
-        );
-
-        BuiltinClass number(
-            { &object },
-            {
-                { "type", BLANK_RETURN_FN("NullType") }
-            }
-        );
-
-        BuiltinClass string(
-            { &object },
-            {
-                { "type", BLANK_RETURN_FN("String") }
-            }
-        );
-    */
-        #undef BLANK_RETURN_FN
+        BuiltinClass object({ });
     }
-
 }
 
 int main() {
+    cout << SEP;
+    #include "classes.h"
+    cout << SEP;
+    #include "cache_decl.h"
+    cout << SEP;
 	cout << "\n┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓\n┃ Standard: " << __cplusplus << ", compilation started at: " << __TIME__ << " UTC ┃\n┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛\n\n";
 	
     {
+        cout << SEP;
 
-		#include "pre_decl.h"
 		//#include "tests/cpp_function.h"
 
 		UL::Tracker::repr();
+
+        //cout << UL::Classes::object["type"]() << "\n";
 
 		//OPTR f(new UL::CppFunction({ }, false, DY_LMBD{ return OPTR("It's a me"); }));
 
 		//cout << f() << "\n";
 
-		OPTR x = 5;
-		//OPTR y = 5;
-		//OPTR z = 6;
+        //#include "tests/functions/mixed_function.h"
 
+        auto a = new UL::Object();
+        //auto b = new UL::Object();
+
+        a->attrs.try_emplace("f", new UL::Object(new UL::CppFunction({new UL::Object(5), new UL::Object(6)}, false, DY_LMBD {
+            int v, w, x, y, z;
+            if (!argument_data->assign_args<3>(arguments, v, w, x, y, z)) {
+                //cout << repr_arg_error(3, 2, false, arguments.size()) << "\n";
+                return UL::null_optr;
+            }
+            print(v, w, x, y, z);
+            return OPTR((int)0xDeadBeef);
+        })));
+        
+        //print("?", i_func ? "callable" : "not callable");
+        //print("?", bool(a->attrs["f"]->union_val.function_val->function) ? "callable" : "not callable");
+        //print(a->attrs["f"]->union_val.function_val->function);
+
+
+        OPTR a1(13), a2(14), a3(15), a4(16);
+        std::vector<UL::Object*> args {a1.object_ptr, a2.object_ptr, a3.object_ptr, a4.object_ptr};
+        print(args);
+
+        print("1");
+        print(*a->attrs["f"]);
+
+        cout << (*a->attrs["f"])(args) << "\n";
+
+        //cout << a->attrs << "\n";
 
 		UL::Tracker::repr();
 
-		cout << "\nEXITED LOCAL SCOPE\n";
+        cout << SEP "EXITED LOCAL SCOPE\n";
 	}
+    cout << SEP;
 
     UL::Tracker::repr();
 
     //cout.clear();
-    cout << "\nEXITED PROGRAM\n";
+    cout << SEP "EXITED PROGRAM\n";
     return 0;
 }

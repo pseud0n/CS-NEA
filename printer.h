@@ -3,11 +3,13 @@
 
 //void print_box(std::string msg) cout << '┏' <<  << "┓\n┃"  "┃\n┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛\n\n";
 
+#define SEP "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+
 #define OSTREAM_HEADER(type, name) std::ostream& operator <<(std::ostream& stream, type name)
 
-#define STD_OVERLOAD(type)                                                                                              \
-    template <typename ElementT>                                                                                        \
-    OSTREAM_HEADER(const std::type<ElementT>&, object) {                                                                \
+#define ITER_OVERLOAD(type)                                                                                              \
+    template <typename  Ts>                                                                                        \
+    OSTREAM_HEADER(const type<Ts>&, object) {                                                                \
         stream << "{";                                                                                                  \
         for (auto it = object.begin(); it != object.end(); ++it) { /* auto: std::type<ElementT>::iterator */            \
             if (it != object.begin()) stream << ", ";                                                                   \
@@ -16,8 +18,50 @@
         return stream << "}";                                                                                           \
     }
 
-STD_OVERLOAD(vector)
-STD_OVERLOAD(unordered_set)
+template <typename K, typename V>
+std::ostream& operator <<(std::ostream& stream, const std::pair<K, V>& p) {
+    return stream << p.first << ": " << p.second;
+}
+
+ITER_OVERLOAD(std::vector)
+//ITER_OVERLOAD(const std::vector)
+ITER_OVERLOAD(std::unordered_set)
+//ITER_OVERLOAD(std::unordered_map)
+
+template <typename T>
+std::string repr_deref(std::vector<T> v) {
+    std::stringstream sstream;
+    sstream << "{";                                                                                                  \
+        for (auto it = v.begin(); it != v.end(); ++it) { /* auto: std::type<ElementT>::iterator */            \
+            if (it != v.begin()) sstream << ", ";                                                                   \
+            sstream << **it;                                                                                              \
+        }                                                                                                               \
+    sstream << "}";    
+    return sstream.str();
+}
+
+template <typename Arg, typename... Args>
+void print(Arg&& arg, Args&&... args) {
+    cout << std::forward<Arg>(arg);
+    ((cout << ' ' << std::forward<Args>(args)), ...);
+    cout << '\n';
+}
+
+void print() {
+    cout << '\n';
+}
+
+
+std::string repr_arg_error(size_t min, size_t optional, bool is_variadic, size_t entered) {
+    std::stringstream error;
+    if (entered < min || (!is_variadic && entered > min + optional)) {
+        error << "Entered " << entered << " arguments but function requires ";
+        if (is_variadic) error << " at least " << min << " arguments";
+        else if (optional == min) error << "exactly " << min << " arguments";
+        else error << min << " to " << optional + min;
+    }
+    return error.str();
+}
 
 namespace UL {
     OSTREAM_HEADER(const UserDefinedObject&, user_defined_object) {
@@ -34,11 +78,11 @@ namespace UL {
     }
 
     OSTREAM_HEADER(const Object&, object) {
-        if (object.union_val.numerical_val == 0) //Since all pointers are stored in the same place, it doesn't matter which pointer is chosen
-            return stream << "<void>";
+        if (object.union_val.numerical_val == NULL) // Since all pointers are stored in the same place, it doesn't matter which pointer is chosen
+            if (object.type != Types::null) return stream << "<Void>";
         switch (object.type) {
             case Types::null:
-                return stream << "<None>";
+                return stream << "<Null>";
             case Types::number:
                 return stream << *object.union_val.numerical_val;
             case Types::string:
@@ -97,7 +141,7 @@ namespace UL {
 
 
 #undef TP_CASE
-#undef STD_OVERLOAD
+#undef ITER_OVERLOAD
 #undef OSTREAM_HEADER
 
 #endif

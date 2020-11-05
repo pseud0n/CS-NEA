@@ -24,6 +24,5 @@ std::vector<OPTR> arguments = {8, 3, 2, 1, 11, 100, "hello", "there", 5};
 
 OPTR out = func(arguments);
 cout << out << "\n";
-UL::Tracker::repr();
 
 #endif
