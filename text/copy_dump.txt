@@ -1,0 +1,45 @@
+UL::Object::AttrsT::iterator
+            lo_end 				= lookup_object->attrs.end(),
+            object_dict_iter 	= lookup_object->attrs.find(lookup_name);
+
+        if (object_dict_iter == lo_end) {
+            print("FOUND DIRECTLY IN OBJECT");
+            return object_dict_iter->second; // Returns OPTR
+        }
+
+
+		/*
+		Next, it looks in the object's superclasses.
+		However, this requires that the object is class.
+		Whether an object is a type can be determined by if its type constains
+		the MRO attribute. A class may also be an instance of a metaclass (so
+		its type is an instance of Class).
+		The search for the attribute is only as deep as checking if the
+		name exists directly in the object.
+		*/
+
+        const OPTR *optr_ptr = lookup_object->get_class_optrptr_if_present(lookup_name);
+		// NULL if MRO not found or if 
+		if (optr_ptr) {
+			print("FOUND IN CLASS (OR MRO)");
+			// If: checks if `optr_ptr == (OPTR*)0` (NULL is False)
+			return *optr_ptr;
+			// Return the OPTR that was found in the class' MRO
+        }
+
+		/*
+		It is not directly contained in the class' attrs map and it's also
+		either not a class or the class' MRO does not have any objects which
+		directly contain the name.
+		Now, it looks in the type of the object. For a class this type is
+		the 'Class' class.
+		There is a guarantee that 'MRO' will be in any object's type.
+		*/
+
+		optr_ptr = lookup_object->get_attr("type").object_ptr->get_class_optrptr_if_present(lookup_name);
+		if (optr_ptr) {
+			print("FOUND IN CLASS' MRO");
+			// If: checks if `optr_ptr == (OPTR*)0` (NULL is False)
+			return *optr_ptr;
+			// Return the OPTR that was found in the class' MRO
+        }

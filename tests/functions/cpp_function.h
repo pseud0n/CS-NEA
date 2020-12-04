@@ -6,23 +6,29 @@ TEST_REPR("Create and call variadic function");
 
 UL::Tracker::repr();
 
-OPTR func = OPTR(new UL::CppFunction({10, 11, 33}, true, DY_LMBD {
-    // arguments: std::vector<UL::Object*>
-    int a, b, c, d, e, f; // These 6 have to be (convertible to) integers
-    std::vector<std::string> extra_args;
-    // arguments: std::vector<OPTR>&, extra_args: std::vector<std::string>
-    if(!argument_data->assign_args<3>(arguments, &extra_args, a, b, c, d, e, f)) {
-        UL::ArgExc("Function takes 6+ integrals")();
-        return OPTR(nullptr);
+auto a = new UL::Object();
+
+a->attrs.try_emplace("f", new UL::Object(new UL::CppFunction({new UL::Object(5), new UL::Object(6)}, false, DY_LMBD {
+    int v, w, x, y, z;
+    if (!argument_data->assign_args<3>(arguments, v, w, x, y, z)) {
+        //cout << repr_arg_error(3, 2, false, arguments.size()) << "\n";
+        return UL::null_optr;
     }
-    cout << "a-f: " << a << " " << b << " " << c << " " << d << " " << e << " " << f << "\n";
-    cout << extra_args << "\n";
-    return OPTR(a + b + c + d + e + f);
-}));
+    print(v, w, x, y, z);
+    return OPTR(999);
+})));
 
-std::vector<OPTR> arguments = {8, 3, 2, 1, 11, 100, "hello", "there", 5};
+//print("?", i_func ? "callable" : "not callable");
+//print("?", bool(a->attrs["f"]->union_val.function_val->function) ? "callable" : "not callable");
+//print(a->attrs["f"]->union_val.function_val->function);
 
-OPTR out = func(arguments);
-cout << out << "\n";
 
+OPTR a1(13), a2(14), a3(15), a4(16);
+std::vector<UL::Object*> args {a1, a2, a3, a4}; // Implcitly converted
+print(args);
+
+print("1");
+print(*a->attrs["f"]);
+
+cout << (*a->attrs["f"])(args) << "\n";
 #endif

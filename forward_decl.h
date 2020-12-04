@@ -1,14 +1,13 @@
 #ifndef FORWARD_DECL_H
 #define FORWARD_DECL_H
+//INCLUDED(FORWARD_DECL)
+//Included("forward_decl");
 
 #define OPTR UL::ObjectPointer
 
 namespace UL {
+
     enum class Types {
-        custom=0,
-        /*
-        A type which has no associated built-in type or enum, i.e. a custom type in UL
-        */
         blank,
         /*
         Instance of Object; no special attributes
@@ -51,102 +50,68 @@ namespace UL {
 				It can also be converted to an Object by adding a Location object and classifying it as weak or strong
 			They are more efficient since you can interpret arguments as a variety of other types for efficiency
 			Function returns an Object
-		 */
+		*/
         bytecode_function,
 
-		list,
+		pair,
+		/*
+		Stores 2 objects - a key and value
+		*/
+
+		array,
 		/*
 		This type means that the object's union value is an array
-		To be converted to another type, each object must be convertible to the same type
-		If the types within a list are not all the same or convertible to a common type, use 'o' as type
-		 */
+        An array cannot be modified (although its value is not known a compile time)
+        A vector has fast random access since it is stored contiguously
+		*/
 
-         user_defined_object
+        list,
+        /*
+        Implemented as a doubly-linked list for iteration in both directions.
+        Does not support fast random access but supports fast bidirectional iteration
+        Iterating by incrementing a variable and indexing is not recommended
+        */
+
+        dictionary,
+        /*
+        Uses key-value pairs and hashes the keys
+        Keys must be hashable types (all immutable types are hashable)
+		Is constructed from a list or array of pairs
+        */
+        
+        user_defined_object
 	};
 
     class Object;
-
     struct ByteCodeFunction;
     struct CppFunction;
-
     struct UserDefinedObject;
+	class Pair;
+
+	namespace UnionAliases {
+		typedef unsigned char					BlankT;
+		typedef bmp::cpp_int					NumT;
+		typedef const std::pair<OPTR, OPTR>		PairT;
+		typedef const std::vector<OPTR>			ArrayT;
+		typedef std::list<OPTR>					ListT;
+		typedef std::unordered_map<OPTR, OPTR> 	DictT;
+	}
 
     union ObjectUnion {
-        //Note that there is no 'null type' since it's a constant
-        std::string *string_val; //std::string pointer
-        double *numerical_val; //pointer to double
-        CppFunction *function_val; //pointer to a C++ function
-        ByteCodeFunction *bytecode_val; //pointer to a bytecode function, which stores a start val & number of lines
-        std::vector<Object> *list_val; //pointer to a vector of objects
-        UserDefinedObject *udo_val;
+        // Note that there is no 'null type' since it's a constant
+		UnionAliases::BlankT	*blank_val;		//
+        UnionAliases::NumT		*numerical_val; // boost::multiprecision::cpp_int
+        std::string 			*string_val; 	// std::string pointer
+        CppFunction 			*function_val; 	// C++ function
+        ByteCodeFunction 		*bytecode_val;	// Bytecode function, which stores a start val & number of lines
+		UnionAliases::PairT 	*pair_val;		// 2 objects
+        UnionAliases::ArrayT	*vector_val; 	// Vector of objects
+		UnionAliases::ListT		*list_val;		// Linked list
+		UnionAliases::DictT 	*dict_val;		// Dictionary
+        UserDefinedObject		*udo_val;
     };
 
-    class Object {
-        /*
-        The Object is the standard class which allows several different types to be contained in on type
-        An Object can be used in 2 ways: on the heap or on the stack.
-        A heap Object should only be created as part of an ObjectPointer/OPTR to get reference counted
-        A stack Object should not be wrapped by an OPTR since it will get deallocated anyway
-        Note that a wrapped Object will be explicitly deleted (which UB if allocated on the stack)
-
-        The strength of a stack Object is ignored since it won't be reference-counted
-        The strength of a heap Object is important and is tracked by an OPTR
-        This is why a heap Object must be wrapped by and OPTR, which automatically deletes the object
-        A stack Object still has a reference count, but it is unused
-
-        Each object has an associated list. This determines where it will get its methods from.
-        The objects in this list represent the superclasses of the object.
-        The first one can be considered its type.
-        */
-        friend class ObjectPointer;
-        friend const char* r_optr_constness(const OPTR&); 
-    public:
-        Types type; // Represents union type of underlying value if built-in, not the object's apparent type
-        ObjectUnion union_val;
-        bool is_const; // If true, all references are weak and ownership is constant
-        /*
-        References to this object will all be weak and ownership may not be transferred.
-        A const object is used when the object is part of something built-in.
-        For example, member functions of built-in types would not be reference counted.
-        It would be pointless to keep track of references because we know that at least one reference will always remain
-        The original OPTR is a strong reference but all subsequent references are weak references 
-        */
-        unsigned int reference_count; // Number of existing references to this object
-        
-        std::vector<Object*> supers; // The base objects of this object. The first one could be considered its type.
-        std::unordered_map<std::string, OPTR> attrs;
-
-    //private:
-        Object(bool=true);
-        Object(std::nullptr_t, bool=true);
-        Object(double, bool=true);
-        Object(int, bool=true);
-        Object(std::string, bool=true);
-        Object(CppFunction*, bool=true);
-        Object(ByteCodeFunction*, bool=true);
-        Object(UserDefinedObject*, bool=true);
-        template <typename T> Object(std::initializer_list<T>, bool=true);
-        template <typename ... T> Object(std::tuple<T...>, bool=true);
-        Object(const OPTR&, bool=true);
-        Object(const Object*, bool=true);
-        //Object* make_reference();
-        ~Object();
-        
-        void operator ++();
-        void operator --();
-
-        void operator [](const std::string&);
-        
-        OPTR operator ()(const std::vector<Object*>&);
-        //operator double();
-        Object operator *(const Object&);
-
-        operator int() const;
-        operator std::string () const;
-        operator const Object* () const;
-
-        template <typename CastT> typename std::remove_reference<CastT>::type cast() const;
-    };
+    #include "object.h"
 
     struct UserDefinedObject {
         std::unordered_map<std::string, OPTR> attributes;

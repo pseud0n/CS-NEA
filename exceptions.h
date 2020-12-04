@@ -1,5 +1,5 @@
-#ifndef EXCEPTIONS_H_
-#define EXCEPTIONS_H_
+#ifndef EXCEPTIONS_H
+#define EXCEPTIONS_H
 
 
 #define EXC_CLASS(name, base) struct name : base { \

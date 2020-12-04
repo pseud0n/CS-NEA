@@ -1,5 +1,7 @@
-#ifndef OBJECT_POINTER_H_
-#define OBJECT_POINTER_H_
+#ifndef OBJECT_POINTER_H
+#define OBJECT_POINTER_H
+
+//Included("object_pointer");
 
 #define OPTR UL::ObjectPointer
 
@@ -12,8 +14,13 @@ namespace UL {
         // This type should be predominantly used on the stack
 
     public:
-        Object* object_ptr; // The associated object
-        bool is_weak;
+		//static bool operator ==(const ObjectPointer& o1, const ObjectPointer& o2);
+
+        Object* object_ptr; // 8 bytes
+        bool is_weak;		// 1 byte
+		
+		static size_t hash (const ObjectPointer& o1, const ObjectPointer& o2);
+
         ObjectPointer();
         ObjectPointer(double, bool=true); // Where boolean corresponds to constness
         ObjectPointer(int, bool=true);
@@ -22,13 +29,21 @@ namespace UL {
         // The default value is irrelevant but needs to work if optionally passed
         ObjectPointer(Object*, bool=true);
         template <typename ConstructorT> ObjectPointer(ConstructorT, bool=true);
-        ObjectPointer(const ObjectPointer&, bool=true);
+        ObjectPointer(const ObjectPointer&, bool=true); // Copy constructor
+        ObjectPointer(ObjectPointer&&) noexcept; // Move constructor
         ~ObjectPointer();
+
         ObjectPointer operator ()(const std::vector<Object*>&);
         ObjectPointer operator ()();
-        template <typename ConstructFromT> void create_from_blank(ConstructFromT, bool=true);
+        Object& operator *() const;
+		Object* operator ->() const;
+		bool operator ==(const ObjectPointer&);
+
+        template <typename ConstructFromT> void create_from_blank(const ConstructFromT&, bool=true);
         template <typename CastT> typename std::remove_reference<CastT>::type cast() const;
-        operator Object* () const; // For ease of use
+		ObjectPointer& operator=(ObjectPointer other);
+		// https://en.cppreference.com/w/cpp/language/copy_assignment
+
     };
 }
 

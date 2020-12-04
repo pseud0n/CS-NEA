@@ -1,16 +1,20 @@
-#ifndef PRE_DECL_H_
-#define PRE_DECL_H_
+#ifndef CACHE_DECL_H
+#ifdef DO_CACHE_DECL
+
+#define CACHE_DECL_H
 
 using std::cout;
 
-cout.setstate(std::ios_base::failbit);
+//cout.setstate(std::ios_base::failbit);
 
 //auto blank_function = new UL::CppFunction({}, false, DY_LMBD { return new UL::Object(nullptr); });
 
-for (int i = MIN_CACHED_INTEGER_VALUE; i <= MAX_CACHED_INTEGER_VALUE; ++i)
-    UL::cached_numbers[i - MIN_CACHED_INTEGER_VALUE].create_from_blank(i);
+cout << "Caching integers\n";
 
-cout.clear();
+for (int i = MIN_CACHED_INTEGER_VALUE; i <= MAX_CACHED_INTEGER_VALUE; ++i)
+    UL::cached_numbers[i - MIN_CACHED_INTEGER_VALUE] = new UL::Object(i);
+
+//cout.clear();
 
 cout << "Cached integers in range " << MIN_CACHED_INTEGER_VALUE << " to " << MAX_CACHED_INTEGER_VALUE << " inclusive\n";
 
@@ -32,4 +36,5 @@ It can be guaranteed that the other object will not be implicitly deleted before
 When passed by reference using `Object::make_reference()`, the resulting pointer preserves strength.
 */
 
+#endif
 #endif
