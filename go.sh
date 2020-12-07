@@ -1,7 +1,7 @@
 #!/bin/sh
 
-# ls go -l
-# chmod u+x go
+# ls go.sh -l
+# chmod u+x go.sh
 
 red=`tput setaf 1`
 green=`tput setaf 2`
@@ -14,7 +14,9 @@ motivate () {
 
 clear
 
-echo "STARTING"
+echo "Started at $(date +"%T")"
+
+build_start=`date +%s` # start time, seconds
 
 make
 
@@ -23,7 +25,7 @@ make
 
 if [ $? -eq 0 ]
 then
-	echo "${green}BUILD: SUCCESS${reset}"
+	echo "${green}BUILD: SUCCESS${reset}; $((`date +%s`-build_start))s"
 	./a.out
 	if [ $? -eq 0 ]
 	then

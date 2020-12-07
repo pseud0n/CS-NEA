@@ -35,15 +35,15 @@ public:
 	Use typedefs instead of retyping as part of DRY principle
 	*/
 
-    Types type;
+    Types type; // 4 bytes
 	/*
 	Represents union type of underlying value if built-in, not the object's
 	apparent type. A C++ union does not keep track of the type last stored.
 	The value is unchanging once assigned, except for when an OPTR wraps
 	an
 	*/
-    ObjectUnion union_val;
-    bool is_const;
+    ObjectUnion union_val; // 8 bytes
+    bool is_const; // 1 byte
     /*
     References to this object will all be weak and ownership may not be
 	transferred. A const object is used when the object is part of something
@@ -53,9 +53,9 @@ public:
 	least one reference will always remain. The original OPTR is a strong
 	reference but all subsequent references are weak references 
     */
-    unsigned short reference_count;
+    unsigned short reference_count; // 2 bytes
 	// Number of existing references to this object
-    AttrsT *attrs;
+    AttrsT *attrs; // 8 bytes
 	/*
 	This stores the names and values of several attributes.
 	They are accessed using the name.

@@ -95,9 +95,13 @@ namespace UL {
 			TP_CASE(null)
 			TP_CASE(number)
 			TP_CASE(string)
+			TP_CASE(boolean)
 			TP_CASE(cpp_function)
 			TP_CASE(bytecode_function)
 			TP_CASE(list)
+			TP_CASE(array)
+			TP_CASE(pair)
+			TP_CASE(dictionary)
 			TP_CASE(user_defined_object)
 			default:
 				return stream;
@@ -160,8 +164,44 @@ namespace UL {
 	const char* r_optr_constness(Object* object) {
 		return object->is_const ? "const" : "non-const";
 	}
-
-}
+	
+	/*
+	OSTREAM_HEADER(const ExternalObject&, eobject) {
+		switch (eobject.type()) {
+			case Types::null:
+				break;
+			case Types::number:
+				stream << eobject.get<TypeAliases::NumT>();
+				break;
+			case Types::boolean:
+				return stream << eobject.get<TypeAliases::BoolT>();
+			case Types::string:
+				stream << eobject.get<TypeAliases::StringT>();
+				break;
+			case Types::cpp_function:
+				stream << "<C++ Function>";
+				break;
+			case Types::bytecode_function:
+				stream << "<Bytecode Function>";
+				break;
+			case Types::list:
+				{
+				std::stringstream sstream;
+				sstream << "List[";
+				for (auto it = eobject.get<TypeAliases::ListT>().begin(); it != eobject.get<TypeAliases::ListT>().end(); ++it) {
+					if (it != eobject.get<TypeAliases::ListT>().begin()) sstream << ", ";
+					sstream << *it;
+				}
+				sstream << "]";
+				return stream << sstream.str();
+				}
+			default:
+				break;
+		}
+		return stream;
+	}
+	*/
+} // UL
 
 #ifdef STANDALONE_BIG_DEC_H
 

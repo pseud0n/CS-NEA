@@ -28,6 +28,7 @@ namespace UL {
         Stores a sequence of (wide) characters
 		The value is not constant and all operations are in-place
 		 */
+		boolean,
 		cpp_function,
 		/*
 		Does not have an associated union type
@@ -87,27 +88,34 @@ namespace UL {
     struct CppFunction;
     struct UserDefinedObject;
 	class Pair;
+	struct ExternalObject;
 
-	namespace UnionAliases {
-		typedef unsigned char					BlankT;
-		typedef bmp::cpp_int					NumT;
-		typedef const std::pair<OPTR, OPTR>		PairT;
-		typedef const std::vector<OPTR>			ArrayT;
-		typedef std::list<OPTR>					ListT;
-		typedef std::unordered_map<OPTR, OPTR> 	DictT;
+	namespace TypeAliases {
+		using BlankT 				= bool;
+		using NullT 				= bool; // 1 byte
+		using NumT 					= bmp::cpp_int;
+		using BoolT 				= bool;
+		using StringT 				= std::string;
+		using CppFunctionT 			= CppFunction;
+		using ByteCodeFunctionT 	= ByteCodeFunction;
+		using PairT 				= const std::pair<OPTR, OPTR>;
+		using ArrayT 				= const std::vector<OPTR>;
+		using ListT 				= std::list<OPTR>;
+		using DictT 				= std::unordered_map<OPTR, OPTR>;
+		using UserDefObjT 			= UserDefinedObject;
 	}
 
     union ObjectUnion {
         // Note that there is no 'null type' since it's a constant
-		UnionAliases::BlankT	*blank_val;		//
-        UnionAliases::NumT		*numerical_val; // boost::multiprecision::cpp_int
+		TypeAliases::BlankT	*blank_val;		//
+        TypeAliases::NumT		*numerical_val; // boost::multiprecision::cpp_int
         std::string 			*string_val; 	// std::string pointer
         CppFunction 			*function_val; 	// C++ function
         ByteCodeFunction 		*bytecode_val;	// Bytecode function, which stores a start val & number of lines
-		UnionAliases::PairT 	*pair_val;		// 2 objects
-        UnionAliases::ArrayT	*vector_val; 	// Vector of objects
-		UnionAliases::ListT		*list_val;		// Linked list
-		UnionAliases::DictT 	*dict_val;		// Dictionary
+		TypeAliases::PairT 	*pair_val;		// 2 objects
+        TypeAliases::ArrayT	*vector_val; 	// Vector of objects
+		TypeAliases::ListT		*list_val;		// Linked list
+		TypeAliases::DictT 	*dict_val;		// Dictionary
         UserDefinedObject		*udo_val;
     };
 

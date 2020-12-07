@@ -58,12 +58,15 @@ Plumber plumber;
 //#include "big_dec.h"
 #include "hash.h"
 #include "forward_decl.h" // Header file to forward-declare object
+
+#include "external_object.h"
+
 #include "exceptions.h"
 #include "printer.h"
 
-INCLUDED(HERE)
+SAY(HERE)
 
-#define GENERATE_SWITCH 							\
+#define _GENERATE_SWITCH 							\
 	switch (type) {									\
 		case Types::null:							\
 			break;									\
@@ -84,6 +87,33 @@ INCLUDED(HERE)
 			break;									\
 		case Types::user_defined_object:			\
 			SWITCH_MACRO(union_val.udo_val);		\
+			break;									\
+		default:									\
+			break;									\
+	}
+
+
+#define GENERATE_SWITCH(self) 							\
+	switch (type) {									\
+		case Types::null:							\
+			break;									\
+		case Types::number:							\
+			SWITCH_MACRO(self.get(TypeAliases::NumT));	\
+			break;									\
+		case Types::string:							\
+			SWITCH_MACRO(self.get(TypeAliases::StringT));		\
+			break;									\
+		case Types::cpp_function:					\
+			SWITCH_MACRO(self.get(TypeAliases::CppFunctionT));	\
+			break;									\
+		case Types::bytecode_function:				\
+			SWITCH_MACRO(self.get(TypeAliases::ByteCodeFunctionT));	\
+			break;									\
+		case Types::list:							\
+			SWITCH_MACRO(self.get(TypeAliases::ListT));		\
+			break;									\
+		case Types::user_defined_object:			\
+			SWITCH_MACRO(self.get(TypeAliases::UserDefObjT));		\
 			break;									\
 		default:									\
 			break;									\
@@ -800,9 +830,9 @@ namespace UL {
 	}
 
 	/*
-	Object::Object(UnionAliases::NumT x, bool make_const) //default argument
+	Object::Object(TypeAliases::NumT x, bool make_const) //default argument
 		: type(Types::number), is_const(make_const), reference_count(1) {
-		union_val.numerical_val = new UnionAliases::NumT(x);
+		union_val.numerical_val = new TypeAliases::NumT(x);
 		cout << "Constructed numerical object '" << *this << "' (" << this << ")\n";
 		Tracker::add_pair(this);
 	}
@@ -810,7 +840,7 @@ namespace UL {
 
 	Object::Object(int x, bool make_const) //default argument
 		: type(Types::number), /*is_weak(is_weak),*/ is_const(make_const), reference_count(1) {
-		union_val.numerical_val = new UnionAliases::NumT(x);
+		union_val.numerical_val = new TypeAliases::NumT(x);
 		cout << "Constructed numerical object '" << *this << "' (" << this << ")\n";
 		Tracker::add_pair(this);
 	}
@@ -872,7 +902,7 @@ namespace UL {
 			case Types::null:
 				break;
 			case Types::number:
-				union_val.numerical_val = new UnionAliases::NumT(*from->union_val.numerical_val);
+				union_val.numerical_val = new TypeAliases::NumT(*from->union_val.numerical_val);
 				break;
 			case Types::string:
 				union_val.string_val = new std::string(*from->union_val.string_val);
@@ -884,16 +914,16 @@ namespace UL {
 				union_val.bytecode_val = new ByteCodeFunction(*from->union_val.bytecode_val);
 				break;
 			case Types::pair:
-				union_val.pair_val = new UnionAliases::PairT(*from->union_val.pair_val);
+				union_val.pair_val = new TypeAliases::PairT(*from->union_val.pair_val);
 				break;
 			case Types::list:
-				union_val.list_val = new UnionAliases::ListT(*from->union_val.list_val);
+				union_val.list_val = new TypeAliases::ListT(*from->union_val.list_val);
 				break;
 			case Types::array:
-				union_val.vector_val = new UnionAliases::ArrayT(*from->union_val.vector_val);
+				union_val.vector_val = new TypeAliases::ArrayT(*from->union_val.vector_val);
 				break;
 			case Types::dictionary:
-				union_val.dict_val = new UnionAliases::DictT(*from->union_val.dict_val);//(*from->union_val.dict_val);
+				union_val.dict_val = new TypeAliases::DictT(*from->union_val.dict_val);//(*from->union_val.dict_val);
 				break;
 		}
 		//cout << "Copying (" << (from->is_weak ? "weak->" : "strong->") << (is_weak ? "weak) " : "strong) ") << from << " (" << *from << ") to " << this << " (" << *this << ")\n";
@@ -940,7 +970,7 @@ namespace UL {
 		}
 		*/
 		#define SWITCH_MACRO(thing) delete thing
-		GENERATE_SWITCH
+		_GENERATE_SWITCH
 		#undef SWITCH_MACRO
 	}
 
@@ -1118,12 +1148,93 @@ namespace UL {
 		};
 		BuiltinClass object({ });
 	}
-}
 
-template <typename T>
-void take_cr(const T&) {
-	cout << "TAKE_CR\n";
-}
+	template <typename T>
+	struct Corresponding;
+
+	#define MAKE_TYPE_CONVERSION(from, to, enum_t, make_immovable)		\
+	template <> struct Corresponding<from> {							\
+		using CorrespondingT = to;										\
+		static inline Types enum_type = enum_t;							\
+		static inline bool is_immovable = make_immovable;				\
+	};																	
+
+	template <typename T> using GetCorresponding = typename Corresponding<std::remove_reference_t<T>>::CorrespondingT;
+
+	MAKE_TYPE_CONVERSION(std::string, std::string, Types::string, true)
+	MAKE_TYPE_CONVERSION(bool, bool, Types::boolean, true)
+	MAKE_TYPE_CONVERSION(std::nullptr_t, std::nullptr_t, Types::null, true)
+	MAKE_TYPE_CONVERSION(int, TypeAliases::NumT, Types::number, true)
+	MAKE_TYPE_CONVERSION(TypeAliases::ArrayT, TypeAliases::ArrayT, Types::array, true)
+
+	/*
+	template <> struct Corresponding<const char*> {
+		using CorrespondingT = std::string;
+		static inline Types enum_type = Types::string;
+		static inline bool is_immovable = true;
+	};
+	*/	
+
+	template <typename ConstructionT> // e.g. const char*
+	struct InternalObject {
+		using AttrsT = std::unordered_map<std::string, OPTR>;
+
+		using MyT = GetCorresponding<ConstructionT>;
+
+		Types type;
+		bool is_immovable;
+		unsigned short reference_count;
+		AttrsT *attrs;
+		MyT stored_value; // unidentified underlying object
+		
+		InternalObject(MyT construct_from) // e.g. std::string
+		/*
+			: type(Corresponding<StoredT>::enum_type), is_immovable(Corresponding<StoredT>::is_immovable), reference_count(1), attrs((AttrsT*)0), stored_value(std::move(construct_from)) */{
+			type = Corresponding<ConstructionT>::enum_type;
+			is_immovable = Corresponding<ConstructionT>::is_immovable;
+			reference_count = 1;
+			attrs = (AttrsT*)0;
+			stored_value = construct_from;
+			/*
+			If a large object like a long string is passed in, it should be
+			moved, not copied.
+
+			If we construct from a new dictionary, that can be moved when
+			passed in to the function, or copied otherwise
+			*/
+
+		}
+
+		/*
+		InternalObject(const char* text)
+			: type(Types::string), is_const(false), reference_count(1), attrs(NULL), unknown_type(std::string(text)) {
+		}
+		*/
+	};
+
+	template <typename T>
+	ExternalObject::ExternalObject(T construct_from) {
+		/*
+		The 'type' of an InternalObject is the type it is constructed from.
+		Object may be copied or moved into construct_from, but is never
+		copied after that
+		*/
+		io_ptr = (void*)(new InternalObject<std::remove_reference_t<T>>((GetCorresponding<T>(construct_from))));
+	}
+
+	template <typename T>
+	T& ExternalObject::get() const {
+		return ((InternalObject<T>*)io_ptr)->stored_value;
+	}
+
+	Types ExternalObject::type() const {
+		return *(UL::Types*)io_ptr;
+		// Since this is the first 4 bytes of the object
+	}
+
+
+
+} // UL
 
 int main() {
 	cout << std::boolalpha; // print true & false not 1 & 0
@@ -1144,12 +1255,13 @@ int main() {
 		UL::Tracker::repr();
 		
 		//#include "tests/class_hier.h"
-		//std::string s("dofijdoifjadofadfhioadfoadhfoidhfpiehfeifiodhofidhafdhpaofidhaopfihdoipfhdaoifhn");
-		const char *string = "aadfkjaljhkgliilfygkjfgfgsgfgs;kldfj;aoeif";
-		//auto o = new UL::Object(string);
-		auto o = new UL::Object();
-		//OPTR op(o);
-		//print(x);
+		//std::string s("dofijdoifjadofadfhioadfohfpiehfeifiodhpaofidhaopfihdoipfhdaoifhn");
+
+		UL::ExternalObject obj(100000);
+
+		cout << ((UL::InternalObject<int>*)obj.io_ptr)->stored_value << "\n";
+
+		//print(*(UL::Types*)(obj.io_ptr));
 
 		UL::Tracker::repr();
 		cout << SEP "EXITED LOCAL SCOPE\n";
@@ -1159,7 +1271,7 @@ int main() {
 
 	UL::Tracker::repr();
 	#ifdef DO_CACHE_DECL
-	for (UL::Object* cached_heap_ptr : UL::cached_numbers)
+	for (UL::Object * cached_heap_ptr : UL::cached_numbers)
 		delete cached_heap_ptr;
 	#endif
 	delete UL::null_obj;
