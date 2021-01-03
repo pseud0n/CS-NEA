@@ -3,17 +3,28 @@
 /*
 Made by Alex Scorza, 2020
 
-clear && make && ./main
+
+manual:
+	clear && make && ./a.out
+custom:
+	./go.sh
+
+If permission to a.out is denied:
+delete it:
+	make clean
 
 https://www.programiz.com/cpp-programming/online-compiler/
 */
 
 
 #include <boost/multiprecision/cpp_int.hpp>
+#include <boost/functional/hash.hpp>
+
 #include <initializer_list>
 #include <unordered_map>
 #include <unordered_set>
 #include <forward_list>
+#include <type_traits>
 #include <functional>
 #include <algorithm>
 #include <iostream>
@@ -40,31 +51,38 @@ using namespace std::string_literals;
 // chrono_literals definition for numerical only, not string (phew!)
 
 
+#include "standalone/debug_object.h"
 #include "standalone/decl_display.h"
-
 #include "standalone/plumber.h"
+#include "standalone/dynamic_array.h"
 
 Plumber plumber;
 
 #define TEST_REPR(str) cout << "--------TEST: " << str << "\n\n"
 
 #define MIN_CACHED_INTEGER_VALUE 0
-#define MAX_CACHED_INTEGER_VALUE 5
+#define MAX_CACHED_INTEGER_VALUE 10
+
 
 #include "object_pointer.h"
 
 #define OPTR UL::ObjectPointer
 
 //#include "big_dec.h"
-#include "hash.h"
 #include "forward_decl.h" // Header file to forward-declare object
 
-#include "external_object.h"
+
+namespace UL {
+	#include "objects/internal.h"
+	#include "objects/external.h"
+	#include "objects/conversions.h"
+	#include "cache/decl.h"
+}
+
+#include "hash.h"
 
 #include "exceptions.h"
 #include "printer.h"
-
-SAY(HERE)
 
 #define _GENERATE_SWITCH 							\
 	switch (type) {									\
@@ -93,28 +111,59 @@ SAY(HERE)
 	}
 
 
-#define GENERATE_SWITCH(self) 							\
-	switch (type) {									\
+
+//(UL::InternalObject<UL::Aliases::NumT>*)self.io_ptr
+#define __GENERATE_SWITCH(self) 							\
+	switch (self->type()) {									\
 		case Types::null:							\
 			break;									\
 		case Types::number:							\
-			SWITCH_MACRO(self.get(TypeAliases::NumT));	\
+			SWITCH_MACRO(self->get<Aliases::NumT>());	\
 			break;									\
 		case Types::string:							\
-			SWITCH_MACRO(self.get(TypeAliases::StringT));		\
+			SWITCH_MACRO(self->get<Aliases::StringT>());		\
 			break;									\
 		case Types::cpp_function:					\
-			SWITCH_MACRO(self.get(TypeAliases::CppFunctionT));	\
+			SWITCH_MACRO(self->get<Aliases::CppFunctionT>());	\
 			break;									\
 		case Types::bytecode_function:				\
-			SWITCH_MACRO(self.get(TypeAliases::ByteCodeFunctionT));	\
+			SWITCH_MACRO(SWITCH_MACRO(self->get<Aliases::ByteCodeFunctionT>());	\
 			break;									\
 		case Types::list:							\
-			SWITCH_MACRO(self.get(TypeAliases::ListT));		\
+			SWITCH_MACRO(self->get<Aliases::ListT>());		\
 			break;									\
-		case Types::user_defined_object:			\
-			SWITCH_MACRO(self.get(TypeAliases::UserDefObjT));		\
+		case Types::array:							\
+			SWITCH_MACRO(self->get<Aliases::ArrayT>());		\
+			break;	\
+		default:									\
 			break;									\
+	}
+
+#define GENERATE_SWITCH(enum_val) 							\
+	switch (enum_val) {									\
+		case Types::null:							\
+			break;									\
+		case Types::number:							\
+			SWITCH_MACRO(Aliases::NumT);	\
+			break;									\
+		case Types::string:							\
+			SWITCH_MACRO(Aliases::StringT);		\
+			break;									\
+		case Types::boolean:							\
+			SWITCH_MACRO(Aliases::BoolT);		\
+			break;									\
+		case Types::cpp_function:					\
+			SWITCH_MACRO(Aliases::CppFunctionT);	\
+			break;									\
+		case Types::bytecode_function:				\
+			SWITCH_MACRO(Aliases::ByteCodeFunctionT);	\
+			break;									\
+		case Types::list:							\
+			SWITCH_MACRO(Aliases::ListT);		\
+			break;									\
+		case Types::array:							\
+			SWITCH_MACRO(Aliases::ArrayT);		\
+			break;	\
 		default:									\
 			break;									\
 	}
@@ -189,6 +238,7 @@ namespace UL {
 //Assumes that return type of lambda is a UL::Object, so this will be converted
 
 #define DY_LMBD [](UL::CppFunction* argument_data, const std::vector<UL::Object*>& arguments)
+#define UL_LMBD [](UL::CppFunction* argument_data, const std::vector<UL::ExternalObject>& arguments) -> UL::ExternalObject
 //Macro for defining the lambda for a CppFunction as `DY_LMBD { stuff }`
 
 namespace Utils {
@@ -277,27 +327,61 @@ namespace UL {
 		//Pair(Object* o1, Object* o2) : key(o1), value(o2)  {}
 	};
 
-	struct CppFunction {
+	class CppFunction {
+	private:
+		static inline const std::vector<ExternalObject> empty_eobject_vec;
+		static inline const std::vector<Types> empty_type_vec;
+
+		static std::string repr_arg_type_error(const CppFunction& cpp_function, const std::vector<ExternalObject>& arguments) {
+			std::stringstream error;
+			//print("here");
+			if (cpp_function.has_type_requirement) {
+				std::vector<Types> v(arguments.size());
+				std::transform(
+					arguments.begin(), arguments.end(), v.begin(),
+					[](const ExternalObject& o) -> Types { return o.type(); }
+				);
+				//print("has type requirement", arguments, v, cpp_function.required_types, cpp_function.required_types.size());
+				size_t i = 0;
+				for (size_t i = 0; i < cpp_function.required_types.size(); ++i) {
+					if (cpp_function.required_types[i] != Types::any && cpp_function.required_types[i] != arguments[i].type()) {
+						//print("Error!");
+						error
+							<< "For argument " << i
+							<< ": acceptable type: " << cpp_function.required_types[i] 
+							<< ", got type: " << arguments[i].type();
+						break;
+					}
+				}
+			}
+			//print("Got to end");
+			return error.str();
+		}
+	public:
 		/*
 		Functor class which represents a function written in C++
 		A CppFunction accepts any number of arguments and input variables of C++ types
 		*/
-		const std::vector<Object*> optional_arguments;
-		//Vector of lambdas returning UL::Object (implicitly converts return value) to stop objects from being constructed if they're not actually used
-		//All additional arguments go to default values and then to the variable storing variadic arguments
-		bool is_variadic; //Whether the function accepts any number of arguments beyond required + optional
-		std::function<OPTR(CppFunction*, const std::vector<Object*>&)> function; //The function object containing the code
 
+		//using std::initializer_list<std::reference_wrapper<ExternalObject>>
 
-		/*
-		CppFunction(std::vector<std::function<Object()> > optional_arguments, bool is_variadic, std::function<Object*(CppFunction*, std::vector<UL::Object*>&)> func)
-			: optional_arguments(optional_arguments), is_variadic(is_variadic), function(func) {
-		}
-		*/
+		const std::vector<ExternalObject> optional_arguments;
+		// Vector of lambdas returning UL::Object (implicitly converts return value) to stop objects from being constructed if they're not actually used
+		// All additional arguments go to default values and then to the variable storing variadic arguments
+		bool is_variadic; // Whether the function accepts any number of arguments beyond required + optional
+		std::function<ExternalObject(CppFunction*, const std::vector<ExternalObject>&)> function; //The function object containing the code
+		const std::vector<Types> required_types; // Either empty or full, use Types::any if irrelevant
+		const Types variadic_type = Types::any; // Single type for every variadic element
+		const bool has_type_requirement = false; // n/nt for variadic_type, but for required_type
 
-		CppFunction(std::vector<Object*> optional_arguments, bool is_variadic, std::function<OPTR(CppFunction*, const std::vector<Object*>&)> func)
-			: optional_arguments(optional_arguments), is_variadic(is_variadic), function(func) {
-			print("CF CONSTRUCT", function ? "callable" : "not callable");
+		CppFunction(
+			std::vector<ExternalObject> optional_arguments, bool is_variadic,
+			std::function<ExternalObject(CppFunction*, const std::vector<ExternalObject>&)> func,
+			const std::vector<Types>& required_types = empty_type_vec, Types variadic_type = Types::any)
+			: optional_arguments(optional_arguments), is_variadic(is_variadic), function(func),
+			  required_types(required_types), variadic_type(variadic_type),
+			  has_type_requirement(!required_types.empty()) {
+			//print("CF CONSTRUCT", function ? "callable" : "not callable");
 		}
 
 		CppFunction(const CppFunction& from) // Copy constructor
@@ -306,23 +390,25 @@ namespace UL {
 
 		~CppFunction() {
 			cout << "Destructing CppFunction " << this << '\n';
-			for (Object* object : optional_arguments)
+			/*
+			for (ExternalObject object : optional_arguments)
 				delete object; // Optional arguments stored on heap and automatically deleted
+			*/
 		}
 
-		OPTR operator ()(const std::vector<Object*>& args) {
+		ExternalObject operator ()(const std::vector<ExternalObject>& args) {
 			//[](UL::CppFunction* argument_data, const std::vector<UL::Object*>& arguments) { ... }
-			print(args, (function ? "callable" : "not callable"));
+			//print(args, (function ? "callable" : "not callable"));
 			return function(this, args);
 		}
 		
-		OPTR operator ()() { // Simple function which takes no arguments
-			return function(this, { });
+		ExternalObject operator ()() { // Simple function which takes no arguments
+			return function(this, empty_eobject_vec);
 		}
 
-		//OPTR operator ()(OPTR self, ) 
+		//ExternalObject operator ()(ExternalObject self, ) 
 		template <size_t MinArgCount, typename... TypesT>
-		bool assign_args(const std::vector<Object*>& inputs, TypesT&... outputs) {
+		bool assign_args(const std::vector<ExternalObject>& inputs, TypesT&... outputs) {
 			/*
 			This function is used when assigning arguments in a non-variadic function.
 			It takes the inputs and outputs and simply maps them (also taking optional arguments into account)
@@ -332,13 +418,22 @@ namespace UL {
 			//print("Assigning args:", inputs.size(), MinArgCount);
 			//print(sizeof...(outputs),  __PRETTY_FUNCTION__);
 
-			std::string error = repr_arg_error(MinArgCount, optional_arguments.size(), is_variadic, inputs.size());
+			std::string error = repr_arg_count_error(MinArgCount, optional_arguments.size(), is_variadic, inputs.size());
 			//print("Error:", error, error.empty());
 
-			if (!error.empty()) {
+			if (error.empty()) {
+				error = repr_arg_type_error(*this, inputs);
+				//print("Set error");
+				if (!error.empty()) {
+					print(error);
+					return false;
+				}
+			} else {
 				print(error);
 				return false;
 			}
+
+			//print("Error-free");
 
 			// outputs: tuple of pointers to give the inputs to
 			// inputs: vector of Object pointers
@@ -360,12 +455,12 @@ namespace UL {
 
 			Utils::inplace_tuple_slice_apply<MinArgCount>(
 				[&argument_traverser, &inputs](auto&... var_pointer) {
-					((var_pointer = inputs[argument_traverser++]->cast<CURRENT_TYPE>()), ...); // Assigns each variable the current (required) entered argument
+					((var_pointer = inputs[argument_traverser++].cast<CURRENT_TYPE>()), ...); // Assigns each variable the current (required) entered argument
 				},//std::tuple_element_t<N, std::tuple<Ts&...>>
 				[&inputs, this](auto&... var_pointer) { // `this` is a pointer so it's captured by value
 					// All optional arguments that remain are handled here (arguments beyond minimum)
 					size_t index = 0;
-					print("vectors:", repr_deref(inputs), repr_deref(optional_arguments));
+					//print("vectors:", (inputs), (optional_arguments));
 					/*
 					e.g.	MinArgCount = 3, inputs = {13, 14, 15, 16} & optional_arguments = {5, 6}
 							then the resulting values should be {13, 14, 15, 16, 6}
@@ -376,11 +471,11 @@ namespace UL {
 							if (index < MinArgCount + optional_arguments.size() - inputs.size() ) { // If this optional argument was passed explicitly, i.e. not left as default
 								//print(index, MinArgCount + optional_arguments.size(), inputs.size());
 								print("Explicit:", index);
-								var_pointer = inputs[index + MinArgCount]->cast<CURRENT_TYPE>(); // Set variable to explicitly passed argument
+								var_pointer = inputs[index + MinArgCount].cast<CURRENT_TYPE>(); // Set variable to explicitly passed argument
 							}
 							else { // If this optional argument was not passed and instead is set to a default value
 								print("Implicit", index);
-								var_pointer = optional_arguments[index]->cast<CURRENT_TYPE>();
+								var_pointer = optional_arguments[index].cast<CURRENT_TYPE>();
 							}
 							++index;
 						}()
@@ -414,7 +509,7 @@ namespace UL {
 		}
 
 		template <size_t MinArgCount, typename VariadicType, typename... TypesT>
-		bool assign_variadic_args(const std::vector<Object*>& inputs, std::vector<VariadicType>* variadic_var, TypesT&... outputs) {
+		bool assign_variadic_args(const std::vector<ExternalObject>& inputs, std::vector<VariadicType>* variadic_var, TypesT&... outputs) {
 			*variadic_var = std::vector<VariadicType>(); // vector should be initialised regardless of arguments entered
 
 			//cout << "And Here\n";
@@ -428,11 +523,11 @@ namespace UL {
 		}
 
 		template <typename VariadicType>
-		void assign_variadic_args(size_t non_variadic_count, const std::vector<Object*>& inputs, std::vector<VariadicType>* variadic_var) {
+		void assign_variadic_args(size_t non_variadic_count, const std::vector<ExternalObject>& inputs, std::vector<VariadicType>* variadic_var) {
 			//cout << "VC: " << inputs.size() - non_variadic_count << "\n";
 			for (size_t variadic_argument_traverser = non_variadic_count; variadic_argument_traverser < inputs.size(); ++variadic_argument_traverser) {
 				//cout << "VAT: " << variadic_argument_traverser << " " << *inputs[variadic_argument_traverser] << " is now ";
-				variadic_var->push_back(inputs[variadic_argument_traverser]->cast<VariadicType>());
+				variadic_var->push_back(inputs[variadic_argument_traverser].cast<VariadicType>());
 				//variadic_var->push_back("test");
 				//cout << (variadic_var->back()) << "\n";
 			}
@@ -586,9 +681,11 @@ namespace UL {
 
 	//ObjectPointer::ObjectPointer operator ()(std::vector<Object*>&);
 
+	/*
 	OPTR ObjectPointer::operator ()(const std::vector<Object*>& args) {
 		return (*object_ptr->union_val.function_val)(args);
 	}
+	*/
 
 	OPTR ObjectPointer::operator ()() {
 		return (*object_ptr->union_val.function_val)();
@@ -890,8 +987,6 @@ namespace UL {
 
 	Object::Object(const OPTR& from, bool)
 		: type(from.object_ptr->type), union_val(from.object_ptr->union_val)  {
-
-
 	}
 
 	Object::Object(const Object* from /*bool force_weak*/, bool make_const)
@@ -1003,9 +1098,11 @@ namespace UL {
 		
 	}
 
+	/*
 	OPTR Object::operator ()(const std::vector<Object*>& args) {
 		return (*union_val.function_val)(args); //Pass inputs by reference
 	}
+	*/
 
 	Object::operator int() const {
 		return (int)*union_val.numerical_val;
@@ -1149,78 +1246,235 @@ namespace UL {
 		BuiltinClass object({ });
 	}
 
-	template <typename T>
-	struct Corresponding;
+	template <typename StoredT>
+	InternalObject<StoredT>::InternalObject()
+		: type(AssociatedData<StoredT>::enum_type), reference_count(1),
+		  is_immovable(AssociatedData<StoredT>::is_immovable),
+		  stored_value(StoredT()) {}
 
-	#define MAKE_TYPE_CONVERSION(from, to, enum_t, make_immovable)		\
-	template <> struct Corresponding<from> {							\
-		using CorrespondingT = to;										\
-		static inline Types enum_type = enum_t;							\
-		static inline bool is_immovable = make_immovable;				\
-	};																	
+	template <typename StoredT>
+	InternalObject<StoredT>::InternalObject(StoredT construct_from) // e.g. std::string
+	/*
+		: type(Corresponding<StoredT>::enum_type), is_immovable(Corresponding<StoredT>::is_immovable), reference_count(1), attrs((AttrsT*)0), stored_value(std::move(construct_from)) */{
+		type = AssociatedData<StoredT>::enum_type;
+		reference_count = 1;
+		is_immovable = AssociatedData<StoredT>::is_immovable;
+		//attrs = (AttrsT*)0;
+		stored_value = std::move(construct_from);
+		/*
+		If a large object like a long string is passed in, it should be
+		moved, not copied.
 
-	template <typename T> using GetCorresponding = typename Corresponding<std::remove_reference_t<T>>::CorrespondingT;
+		If we construct from a new dictionary, that can be moved when
+		passed in to the function, or copied otherwise
+		*/
+	}
 
-	MAKE_TYPE_CONVERSION(std::string, std::string, Types::string, true)
-	MAKE_TYPE_CONVERSION(bool, bool, Types::boolean, true)
-	MAKE_TYPE_CONVERSION(std::nullptr_t, std::nullptr_t, Types::null, true)
-	MAKE_TYPE_CONVERSION(int, TypeAliases::NumT, Types::number, true)
-	MAKE_TYPE_CONVERSION(TypeAliases::ArrayT, TypeAliases::ArrayT, Types::array, true)
+	template <typename StoredT>
+	InternalObject<StoredT>::~InternalObject() {
+		//if (attrs) delete attrs; // If dictionary exists, delete it
+	};
+
+
+	template <typename... Ts>
+	void* ExternalObject::make_array(Ts... construct_from) {
+		auto temp = new InternalObject<Aliases::ArrayT>(Aliases::ArrayT(sizeof...(Ts)));
+		size_t i = 0;
+		((
+			[&](){
+				temp->stored_value[i++] = construct_from;
+				//print(construct_from, i, temp->stored_value);
+			}()
+		), ...);
+		return (void*)temp;
+		// Controlled by ExternalObject so will get deleted correctly
+	}
+
+	template <typename K, typename V>
+	void* ExternalObject::make_pair(K key, V value) {
+		auto temp = new InternalObject<Aliases::PairT>();
+		temp->stored_value.first 	= key;
+		temp->stored_value.second 	= value;
+		return (void*)temp;
+	}
+
+	template <typename K, typename V, typename... KVs>
+	void ExternalObject::make_dict_helper(Aliases::DictT& u_map_ref, const K& key, const V& value, const KVs&... Ks) {
+		cout << "Emplacing " << key << ":" << value << "\n";
+		u_map_ref.emplace(key, value);
+		//std::cin.get();
+		make_dict_helper(u_map_ref, Ks...);
+	}
+
+	void ExternalObject::make_dict_helper(Aliases::DictT&) {
+	}
+
+	template <typename... KVs>
+	void* ExternalObject::make_dict(const KVs&... Ks) {
+		print("Making");
+		auto temp = new InternalObject<Aliases::DictT>;
+		print("Made");
+		make_dict_helper(temp->stored_value, Ks...);
+		return (void*)temp;
+	}
+
+	ExternalObject::ExternalObject() : is_weak(true), io_ptr((void*)0) {
+		cout << "Constructing new Null ExternalObject\n";
+	}
+
+	ExternalObject::ExternalObject(void* internal_object_ptr, bool)
+		: is_weak(false), io_ptr(internal_object_ptr) { // Cannot be weak if from original
+		print("Constructing from InternalObject pointer", io_ptr);
+	}
+
+	ExternalObject& ExternalObject::operator =(void* internal_object_ptr) {
+		print("Assigning from InternalObject pointer", internal_object_ptr);
+		is_weak = false;
+		io_ptr = internal_object_ptr;
+		return *this;
+	}
 
 	/*
-	template <> struct Corresponding<const char*> {
-		using CorrespondingT = std::string;
-		static inline Types enum_type = Types::string;
-		static inline bool is_immovable = true;
-	};
-	*/	
+	#ifdef DO_CACHE_DECL
+	ExternalObject::ExternalObject(bool construct_from)
+		: io_ptr(construct_from ? Cache::bool_true : Cache::bool_false) {}
+	
+	ExternalObject& ExternalObject::operator =(bool construct_from) {
+		io_ptr = construct_from ? Cache::bool_true : Cache::bool_false;
+		return *this;
+	}
+	#endif
+	*/
 
-	template <typename ConstructionT> // e.g. const char*
-	struct InternalObject {
-		using AttrsT = std::unordered_map<std::string, OPTR>;
-
-		using MyT = GetCorresponding<ConstructionT>;
-
-		Types type;
-		bool is_immovable;
-		unsigned short reference_count;
-		AttrsT *attrs;
-		MyT stored_value; // unidentified underlying object
-		
-		InternalObject(MyT construct_from) // e.g. std::string
+	ExternalObject::ExternalObject(const ExternalObject& copy_from, bool make_weak) {
+		print("Copying from", copy_from);
 		/*
-			: type(Corresponding<StoredT>::enum_type), is_immovable(Corresponding<StoredT>::is_immovable), reference_count(1), attrs((AttrsT*)0), stored_value(std::move(construct_from)) */{
-			type = Corresponding<ConstructionT>::enum_type;
-			is_immovable = Corresponding<ConstructionT>::is_immovable;
-			reference_count = 1;
-			attrs = (AttrsT*)0;
-			stored_value = construct_from;
-			/*
-			If a large object like a long string is passed in, it should be
-			moved, not copied.
-
-			If we construct from a new dictionary, that can be moved when
-			passed in to the function, or copied otherwise
-			*/
-
-		}
-
-		/*
-		InternalObject(const char* text)
-			: type(Types::string), is_const(false), reference_count(1), attrs(NULL), unknown_type(std::string(text)) {
-		}
+		is_weak		make_weak		result
+		false		false			false
+		false		true			true
+		true		false			true
+		true		true			true		
 		*/
-	};
+		is_weak = copy_from.is_weak || make_weak;
+		io_ptr = copy_from.io_ptr;
+		if (io_ptr) // Also increments references for cached objects
+			++copy_from.refcount(); // Since method returns lvalue
+	}
+
+	ExternalObject& ExternalObject::operator =(const ExternalObject& copy_from) {
+		print("Copy-assigning from", copy_from);
+		is_weak = copy_from.is_weak;
+		io_ptr = copy_from.io_ptr;
+		if (io_ptr)
+			++refcount();
+		return *this;
+	}
+
+	ExternalObject::ExternalObject(ExternalObject&& move_from) noexcept {
+		print("Moving from", move_from);
+		io_ptr = std::exchange(move_from.io_ptr, (void*)0);
+		is_weak = move_from.is_weak;
+		// The old object won't be deleted since it has a 0 pointer
+	}
+
+	ExternalObject& ExternalObject::operator =(ExternalObject&& move_from) noexcept {
+		print("Move-assigning from", move_from);
+		io_ptr = std::exchange(move_from.io_ptr, (void*)0);
+		is_weak = move_from.is_weak;
+		// The old object won't be deleted since it has a 0 pointer
+		return *this;
+	}
+
+	#define DEL_IO_PTR(T) delete (UL::InternalObject<Aliases::T>*)io_ptr; break;
+	ExternalObject::~ExternalObject() {
+		/*
+		#define SWITCH_MACRO(T) delete (UL::InternalObject<T>*)io_ptr
+		GENERATE_SWITCH(type())
+		#undef SWITCH_MACRO
+		*/
+
+		/*
+		When deleting, the reference count of an object should be reduced.
+		Depending on the value of is_weak, it may or may not decrement.
+		Weak:
+			NullT (always)
+			BoolT (if caching turned on)
+			NumT (if caching turned on an in range)
+		*/
+		if(io_ptr) {
+			if (!is_weak) {
+				// Guarantee of valid pointer; null: is_weak = true
+				// Pointer is only invalid when object is null
+				print("\tDecref'ing", *this, "to", refcount() - 1);
+				if(--refcount()) return;
+				// References still remain to underlying object
+			} else {
+				print("\tWeak; ignoring");
+				return;
+			}
+			//print("Reduced reference count to", refcount());
+			switch (type()) {
+				print("Deleting ExternalObject:", *this);
+				case Types::number:
+					DEL_IO_PTR(NumT);
+					{
+						/*
+						#ifdef DO_CACHE_DECL
+						auto num_reference = get<Aliases::NumT>();
+						if (num_reference > Cache::min && num_reference <= Cache::max)
+							break;
+						#endif // If no caching, always deletes; otherwise breaks if cached
+						*/
+						// If weak/cached, already caught and returned
+					}
+				case Types::boolean:
+					#ifdef DO_CACHE_DECL
+					break; // true & false are cached
+					#else
+					DEL_IO_PTR(BoolT)
+					#endif
+				case Types::string:
+					DEL_IO_PTR(StringT)
+				case Types::cpp_function:
+					DEL_IO_PTR(NumT)
+					break;
+				case Types::bytecode_function:
+					DEL_IO_PTR(ByteCodeFunctionT)
+					break;
+				case Types::pair:
+					DEL_IO_PTR(PairT)
+					break;
+				case Types::list:
+					DEL_IO_PTR(ListT)
+				case Types::array:
+					DEL_IO_PTR(ArrayT)
+				case Types::dictionary:
+					DEL_IO_PTR(DictT)
+				default:
+					print("DID NOT DELETE", type(), io_ptr);
+			}
+		}
+
+	}
+	#undef DEL_IO_PTR
 
 	template <typename T>
-	ExternalObject::ExternalObject(T construct_from) {
+	ExternalObject::ExternalObject(T construct_from, bool is_weak) {
 		/*
 		The 'type' of an InternalObject is the type it is constructed from.
 		Object may be copied or moved into construct_from, but is never
 		copied after that
 		*/
-		io_ptr = (void*)(new InternalObject<std::remove_reference_t<T>>((GetCorresponding<T>(construct_from))));
+		create_from_blank<T>(std::move(construct_from), is_weak);
 	}
+
+	template <typename T>
+	ExternalObject& ExternalObject::operator =(T construct_from) {
+		print("Assigning from", construct_from);
+		create_from_blank<T>(std::move(construct_from));
+		return *this;
+	}
+
 
 	template <typename T>
 	T& ExternalObject::get() const {
@@ -1228,20 +1482,97 @@ namespace UL {
 	}
 
 	Types ExternalObject::type() const {
-		return *(UL::Types*)io_ptr;
+		//if (!io_ptr) return Types::null;
+		return io_ptr ? *(Types*)io_ptr : Types::null;
 		// Since this is the first 4 bytes of the object
 	}
 
 
+	InternalObject<>::RefCountT& ExternalObject::refcount() const {
+		return *(InternalObject<>::RefCountT*)((Types*)io_ptr + 1);
+		// +1: adds sizeof(Types) bytes to get to bytes for refcount 
+	} // We can use this as an lvalue and modify in-place
+
+	template <typename T>
+	void ExternalObject::create_from_blank(T construct_from, bool make_weak) {
+		/*
+		Turns an ExternalObject with io_ptr 0 into a normal object
+		*/
+		/*
+		io_ptr = (void*)(
+			new InternalObject<GetCorrespondingType<T>>(
+				(
+					GetCorrespondingType<T>(std::move(construct_from))
+				)
+			)
+		);
+		*/
+
+		/*
+		Below:
+		
+		If DO_CACHE_DECL, then check if it's a cacheable type.
+		If it's not, 'else' into the standard procedure
+		
+		If undefined, then go straight to standard procedure
+		*/
+
+		cout << "Constructing new " << AssociatedData<GetCorrespondingType<T>>::enum_type << "\n";
+		if constexpr(std::is_same_v<GetCorrespondingType<T>, std::nullptr_t>) {
+			io_ptr = 0;
+			return;
+		}
+		#ifdef DO_CACHE_DECL
+		if constexpr(std::is_same_v<GetCorrespondingType<T>, Aliases::BoolT>) {
+			io_ptr = construct_from ? Cache::bool_true : Cache::bool_false;
+			is_weak = true; // No reference counting involved
+		} else if constexpr (std::is_same_v<GetCorrespondingType<T>, Aliases::NumT>) {
+			int as_int = static_cast<int>(construct_from);
+			// C++-style casts!
+			// Values may be negative so signed is used
+			if (as_int >= MIN_CACHED_INTEGER_VALUE && as_int <= MAX_CACHED_INTEGER_VALUE) {
+				io_ptr = Cache::numbers[as_int - MIN_CACHED_INTEGER_VALUE];
+				is_weak = true;
+				// Should not delete reference when deleted since cached
+			}
+			else {
+				io_ptr = (void*)new InternalObject<Aliases::NumT>(construct_from);
+				is_weak = false;
+				// Not weak; object treated regularly
+			}
+		} else {
+		#endif
+			// Always used, regardless of DO_CACHE_DECL
+			is_weak = make_weak;
+			io_ptr = (void*)
+				new InternalObject<GetCorrespondingType<T>>(
+					(
+						GetCorrespondingType<T>(std::move(construct_from))
+					)
+				);
+		#ifdef DO_CACHE_DECL
+		}
+		#endif
+	}
+
+	template <typename CastT>
+	typename std::remove_reference_t<CastT> ExternalObject::cast() const {
+		/*
+		You cast to a type and you get that type from the io_ptr
+		*/
+		return ( (InternalObject<std::remove_reference_t<CastT>>*)io_ptr )->stored_value;
+	}
 
 } // UL
 
+#define MKRRY UL::ExternalObject::make_array
+#define MKDCT UL::ExternalObject::make_dict
 int main() {
 	cout << std::boolalpha; // print true & false not 1 & 0
 	cout << SEP;
 	//#include "classes.h"
 	cout << SEP;
-	#include "cache_decl.h"
+	#include "cache/do.h"
 	cout << SEP;
 	cout << "\n"
 			"┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓\n"
@@ -1251,28 +1582,29 @@ int main() {
 	{
 		cout << SEP;
 
-
 		UL::Tracker::repr();
-		
-		//#include "tests/class_hier.h"
-		//std::string s("dofijdoifjadofadfhioadfohfpiehfeifiodhpaofidhaopfihdoipfhdaoifhn");
 
-		UL::ExternalObject obj(100000);
-
-		cout << ((UL::InternalObject<int>*)obj.io_ptr)->stored_value << "\n";
-
-		//print(*(UL::Types*)(obj.io_ptr));
+		//#include "tests/functions/string_lower.h"
+		#include "tests/functions/string_lower.h"
 
 		UL::Tracker::repr();
 		cout << SEP "EXITED LOCAL SCOPE\n";
 	}
+	print("here!");
 
 	cout << SEP;
 
 	UL::Tracker::repr();
 	#ifdef DO_CACHE_DECL
-	for (UL::Object * cached_heap_ptr : UL::cached_numbers)
+	for (UL::Object *cached_heap_ptr : UL::cached_numbers)
 		delete cached_heap_ptr;
+
+	for (UL::InternalObject<UL::Aliases::NumT>* cached_num_ptr : UL::Cache::numbers)
+		delete cached_num_ptr;
+	#define DEL_BOOL(ptr) delete (UL::InternalObject<UL::Aliases::BoolT>*)ptr;
+	DEL_BOOL(UL::Cache::bool_true)
+	DEL_BOOL(UL::Cache::bool_false)
+	#undef DEL_BOOL
 	#endif
 	delete UL::null_obj;
 	/*
@@ -1284,3 +1616,5 @@ int main() {
 	cout << SEP "EXITED PROGRAM\n";
 	return 0;
 }
+#undef MKRRY
+#undef MKDCT

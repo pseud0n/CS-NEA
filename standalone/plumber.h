@@ -43,7 +43,7 @@ public:
 	}
 };
 
-std::ostream& operator<<(std::ostream& stream, const Plumber& instance) {
+std::ostream& operator<<(std::ostream& stream, const Plumber&) {
 	return stream << Plumber::memory_usage << " bytes";
 }
 

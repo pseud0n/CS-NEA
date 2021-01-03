@@ -25,6 +25,10 @@ std::ostream& operator <<(std::ostream& stream, const std::pair<K, V>& p) {
 	return stream << p.first << ": " << p.second;
 }
 
+std::ostream& operator <<(std::ostream& stream, std::nullptr_t) {
+	return stream << "nullptr\n";
+}
+
 ITER_OVERLOAD(std::vector)
 //ITER_OVERLOAD(const std::vector)
 ITER_OVERLOAD(std::unordered_set)
@@ -44,14 +48,6 @@ std::string repr_deref(std::vector<T> v) {
 }
 
 template <typename Arg, typename... Args>
-/*
-void print(Arg&& arg, Args&&... args) {
-	cout << std::forward<Arg>(arg);
-	((cout << ' ' << std::forward<Args>(args)), ...);
-	cout << '\n';
-}
-*/
-
 void print(const Arg& arg, const Args&... args) {
 	cout << arg;
 	((cout << ' ' << args), ...);
@@ -63,7 +59,7 @@ void print() {
 }
 
 
-std::string repr_arg_error(size_t min, size_t optional, bool is_variadic, size_t entered) {
+std::string repr_arg_count_error(size_t min, size_t optional, bool is_variadic, size_t entered) {
 	std::stringstream error;
 	if (entered < min || (!is_variadic && entered > min + optional)) {
 		error << "Entered " << entered << " arguments but function requires ";
@@ -74,11 +70,14 @@ std::string repr_arg_error(size_t min, size_t optional, bool is_variadic, size_t
 	return error.str();
 }
 
+
 namespace UL {
+
 	OSTREAM_HEADER(const UserDefinedObject&, user_defined_object) {
 		return stream << user_defined_object.get_attribute<std::string>("string", "<No available repr>");
 		//return stream << user_defined_object.get_attribute("string", "<No available repr>");
 		//return stream << "<A string>";
+		;
 		/*
 		user_defined_object.get_attribute("string", (std::string)[&user_defined_object](){
 			std::stringstream stream;
@@ -92,6 +91,8 @@ namespace UL {
 
 	OSTREAM_HEADER(Types, type) {
 		switch(type) {
+			TP_CASE(any)
+			TP_CASE(blank)
 			TP_CASE(null)
 			TP_CASE(number)
 			TP_CASE(string)
@@ -104,9 +105,11 @@ namespace UL {
 			TP_CASE(dictionary)
 			TP_CASE(user_defined_object)
 			default:
-				return stream;
+				return stream << "?";
 		}
 	}
+
+	#undef TP_CASE
 
 	OSTREAM_HEADER(const Object&, object) {
 
@@ -137,16 +140,7 @@ namespace UL {
 				return stream << sstream.str();
 			}
 			case Types::array:
-			{
-				std::stringstream sstream;
-				sstream << "[";
-				for (auto it = object.union_val.vector_val->begin(); it != object.union_val.vector_val->end(); ++it) {
-					if (it != object.union_val.vector_val->begin()) sstream << ", ";
-					sstream << *it->object_ptr/* << " " << it->object_ptr << " " << it->object_ptr->type*/;
-				}
-				sstream << "]";
-				return stream << sstream.str();
-			}
+				return stream << "ARRAY";
 			default:
 				return stream; // Fallback; should not be visited under expected circumstances
 		}
@@ -165,29 +159,34 @@ namespace UL {
 		return object->is_const ? "const" : "non-const";
 	}
 	
-	/*
 	OSTREAM_HEADER(const ExternalObject&, eobject) {
+		if (!eobject.io_ptr)
+			return stream  << "Null";
 		switch (eobject.type()) {
 			case Types::null:
 				break;
 			case Types::number:
-				stream << eobject.get<TypeAliases::NumT>();
-				break;
+				return stream << eobject.get<Aliases::NumT>();
 			case Types::boolean:
-				return stream << eobject.get<TypeAliases::BoolT>();
+				return stream << eobject.get<Aliases::BoolT>();
 			case Types::string:
-				stream << eobject.get<TypeAliases::StringT>();
-				break;
+				return stream << '\'' << eobject.get<Aliases::StringT>() << '\'';
 			case Types::cpp_function:
-				stream << "<C++ Function>";
-				break;
+				return stream << "<C++ Function>";
 			case Types::bytecode_function:
-				stream << "<Bytecode Function>";
-				break;
-			case Types::list:
+				return stream << "<Bytecode Function>";
+			case Types::pair:
+			{
+				auto& pair = eobject.get<Aliases::PairT>();
+				return stream << pair.first << ":" << pair.second;
+			}
+				//eobject.get<Aliases::PairT>();
+				// Since overload for std::pair already made
+			case Types::array:
+				/*
 				{
 				std::stringstream sstream;
-				sstream << "List[";
+				sstream << "[";
 				for (auto it = eobject.get<TypeAliases::ListT>().begin(); it != eobject.get<TypeAliases::ListT>().end(); ++it) {
 					if (it != eobject.get<TypeAliases::ListT>().begin()) sstream << ", ";
 					sstream << *it;
@@ -195,12 +194,51 @@ namespace UL {
 				sstream << "]";
 				return stream << sstream.str();
 				}
+				*/
+			
+			/*
+			{
+				stream << "[";
+				auto& array_ref = eobject.get<Aliases::ArrayT>();
+				for (auto it = array_ref.begin(); it != array_ref.end(); ++it) {
+					if (it != array_ref.begin()) stream << ", ";
+					stream << *it;
+				}
+				stream << "]";
+				return stream;
+			}
+			*/
+				return stream << eobject.get<Aliases::ArrayT>();
+			case Types::list:
+			/*
+				{
+				std::stringstream sstream;
+				sstream << "List[";
+				for (auto it = eobject.get<Aliases::ListT>().begin(); it != eobject.get<TypeAliases::ListT>().end(); ++it) {
+					if (it != eobject.get<TypeAliases::ListT>().begin()) sstream << ", ";
+					sstream << *it;
+				}
+				sstream << "]";
+				return stream << sstream.str();
+				}
+			*/
+				return stream << "It's a list";
+			case Types::dictionary:
+			{
+				stream << "Dict[";
+				auto& dict_ref = eobject.get<Aliases::DictT>();
+				for (auto it = dict_ref.begin(); it != dict_ref.end(); ++it) {
+					if (it != dict_ref.begin()) stream << ", ";
+					stream << it->first << ':' << it->second; // print each pair
+				}
+				stream << "]";
+				return stream;
+			}
 			default:
 				break;
 		}
-		return stream;
+		return stream << "<HELP>";
 	}
-	*/
 } // UL
 
 #ifdef STANDALONE_BIG_DEC_H
@@ -241,7 +279,6 @@ OSTREAM_HEADER(const bmp::cpp_int, num) {
 	return stream << "<" << num.str() << ">\n";
 }
 
-#undef TP_CASE
 #undef ITER_OVERLOAD
 #undef OSTREAM_HEADER
 

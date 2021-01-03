@@ -8,6 +8,7 @@
 namespace UL {
 
     enum class Types {
+		any,
         blank,
         /*
         Instance of Object; no special attributes
@@ -85,7 +86,7 @@ namespace UL {
 
     class Object;
     struct ByteCodeFunction;
-    struct CppFunction;
+    class CppFunction;
     struct UserDefinedObject;
 	class Pair;
 	struct ExternalObject;
@@ -102,6 +103,21 @@ namespace UL {
 		using ArrayT 				= const std::vector<OPTR>;
 		using ListT 				= std::list<OPTR>;
 		using DictT 				= std::unordered_map<OPTR, OPTR>;
+		using UserDefObjT 			= UserDefinedObject;
+	}
+
+	namespace Aliases {
+		using BlankT 				= bool;
+		using NullT 				= bool;
+		using NumT 					= bmp::cpp_int;
+		using BoolT 				= bool;
+		using StringT 				= std::string;
+		using CppFunctionT 			= CppFunction;
+		using ByteCodeFunctionT 	= ByteCodeFunction;
+		using PairT 				= std::pair<ExternalObject, ExternalObject>;
+		using ArrayT 				= DynamicArray<ExternalObject>;
+		using ListT 				= std::list<ExternalObject>;
+		using DictT 				= std::unordered_map<ExternalObject, ExternalObject>;
 		using UserDefObjT 			= UserDefinedObject;
 	}
 

@@ -1,7 +1,7 @@
-#ifndef CACHE_DECL_H
-#ifdef DO_CACHE_DECL
+#ifdef DO_CACHE_DECL // Whether caching should take place
 
-#define CACHE_DECL_H
+#ifndef CACHE_DO_H
+#define CACHE_DO_H
 
 using std::cout;
 
@@ -11,8 +11,11 @@ using std::cout;
 
 cout << "Caching integers\n";
 
-for (int i = MIN_CACHED_INTEGER_VALUE; i <= MAX_CACHED_INTEGER_VALUE; ++i)
+for (int i = MIN_CACHED_INTEGER_VALUE; i <= MAX_CACHED_INTEGER_VALUE; ++i) {
     UL::cached_numbers[i - MIN_CACHED_INTEGER_VALUE] = new UL::Object(i);
+	
+	UL::Cache::numbers[i - MIN_CACHED_INTEGER_VALUE] = new UL::InternalObject<UL::Aliases::NumT>(UL::Aliases::NumT(i));
+}
 
 //cout.clear();
 
@@ -36,5 +39,10 @@ It can be guaranteed that the other object will not be implicitly deleted before
 When passed by reference using `Object::make_reference()`, the resulting pointer preserves strength.
 */
 
+#else
+// If CACHE_DO_H already defined - this header 
+#error Cannot cache more than once
+
 #endif
+
 #endif
