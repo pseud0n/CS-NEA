@@ -80,8 +80,13 @@ namespace UL {
         Keys must be hashable types (all immutable types are hashable)
 		Is constructed from a list or array of pairs
         */
+
+		class_object,
+		/*
+		Can be instantiated to an object which can be instantiated
+		*/
         
-        user_defined_object
+        custom
 	};
 
     class Object;
@@ -90,6 +95,7 @@ namespace UL {
     struct UserDefinedObject;
 	class Pair;
 	struct ExternalObject;
+	
 
 	namespace TypeAliases {
 		using BlankT 				= bool;
@@ -118,7 +124,7 @@ namespace UL {
 		using ArrayT 				= DynamicArray<ExternalObject>;
 		using ListT 				= std::list<ExternalObject>;
 		using DictT 				= std::unordered_map<ExternalObject, ExternalObject>;
-		using UserDefObjT 			= UserDefinedObject;
+		using CustomT	 			= std::unordered_map<const char*, ExternalObject>;
 	}
 
     union ObjectUnion {

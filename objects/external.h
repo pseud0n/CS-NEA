@@ -20,6 +20,14 @@ struct ExternalObject {
 	template <typename... KVs>
 	static void* make_dict(const KVs&...);
 
+	
+	static ExternalObject blank_object() {
+		ExternalObject object;
+		object.io_ptr = new InternalObject<Aliases::CustomT>;
+		return object;
+	}
+	
+
 	ExternalObject(); // Default constructor
 
 	ExternalObject(void*, bool=false); // Construct from internal object

@@ -77,11 +77,11 @@ namespace UL {
 	#include "objects/external.h"
 	#include "objects/conversions.h"
 	#include "cache/decl.h"
+	#include "exceptions.h"
 }
 
 #include "hash.h"
 
-#include "exceptions.h"
 #include "printer.h"
 
 #define _GENERATE_SWITCH 							\
@@ -103,7 +103,7 @@ namespace UL {
 		case Types::list:							\
 			SWITCH_MACRO(union_val.vector_val);		\
 			break;									\
-		case Types::user_defined_object:			\
+		case Types::custom:			\
 			SWITCH_MACRO(union_val.udo_val);		\
 			break;									\
 		default:									\
@@ -902,7 +902,7 @@ namespace UL {
 				return union_val.bytecode_val;
 			case Types::list:
 				return union_val.vector_val;
-			case Types::user_defined_object:
+			case Types::custom:
 				return union_val.udo_val;
 		}
 	}
@@ -965,7 +965,7 @@ namespace UL {
 	}
 
 	Object::Object(UserDefinedObject* cls, bool make_const)
-		: type(Types::user_defined_object), /*is_weak(is_weak),*/ is_const(make_const), reference_count(1) {
+		: type(Types::custom), /*is_weak(is_weak),*/ is_const(make_const), reference_count(1) {
 		union_val.udo_val = cls;
 		Tracker::add_pair(this);
 	}
@@ -1057,7 +1057,7 @@ namespace UL {
 			case Types::list:
 				delete union_val.vector_val;
 				break;
-			case Types::user_defined_object:
+			case Types::custom:
 				delete union_val.udo_val;
 				break;
 			default:
@@ -1483,7 +1483,7 @@ namespace UL {
 
 	Types ExternalObject::type() const {
 		//if (!io_ptr) return Types::null;
-		return io_ptr ? *(Types*)io_ptr : Types::null;
+		return io_ptr ? *reinterpret_cast<Types*>(io_ptr) : Types::null;
 		// Since this is the first 4 bytes of the object
 	}
 
@@ -1536,7 +1536,9 @@ namespace UL {
 				// Should not delete reference when deleted since cached
 			}
 			else {
-				io_ptr = (void*)new InternalObject<Aliases::NumT>(construct_from);
+				io_ptr = reinterpret_cast<void*>(
+					new InternalObject<Aliases::NumT>(construct_from)
+				);
 				is_weak = false;
 				// Not weak; object treated regularly
 			}
@@ -1563,7 +1565,9 @@ namespace UL {
 		return ( (InternalObject<std::remove_reference_t<CastT>>*)io_ptr )->stored_value;
 	}
 
+	#include "lookup.h"
 } // UL
+
 
 #define MKRRY UL::ExternalObject::make_array
 #define MKDCT UL::ExternalObject::make_dict

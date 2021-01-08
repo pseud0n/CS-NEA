@@ -103,7 +103,7 @@ namespace UL {
 			TP_CASE(array)
 			TP_CASE(pair)
 			TP_CASE(dictionary)
-			TP_CASE(user_defined_object)
+			TP_CASE(custom)
 			default:
 				return stream << "?";
 		}
@@ -112,6 +112,7 @@ namespace UL {
 	#undef TP_CASE
 
 	OSTREAM_HEADER(const Object&, object) {
+
 
 		if ((void*)object.union_val.numerical_val == 0) // Since all pointers are stored in the same place, it doesn't matter which pointer is chosen
 			if (object.type != Types::null) return stream << "<Void>";
@@ -126,7 +127,7 @@ namespace UL {
 				return stream << "<Cpp Function " << &object << ">";
 			case Types::bytecode_function:
 				return stream << "<BC Function " << &object << ">";
-			case Types::user_defined_object:
+			case Types::custom:
 				return stream << *object.union_val.udo_val;
 			case Types::list:
 			{ // Since cases are labels, local variable sstream must exist in own scope
@@ -134,7 +135,7 @@ namespace UL {
 				sstream << "[";
 				for (auto it = object.union_val.vector_val->begin(); it != object.union_val.vector_val->end(); ++it) {
 					if (it != object.union_val.vector_val->begin()) sstream << ", ";
-					sstream << *it->object_ptr/* << " " << it->object_ptr << " " << it->object_ptr->type*/;
+					sstream << *it->object_ptr;
 				}
 				sstream << "]";
 				return stream << sstream.str();
@@ -234,6 +235,10 @@ namespace UL {
 				stream << "]";
 				return stream;
 			}
+			case Types::custom:
+				stream << "Object";
+				stream.operator<< <Aliases::CustomT>(eobject.get<Aliases::CustomT>());
+				return stream;
 			default:
 				break;
 		}

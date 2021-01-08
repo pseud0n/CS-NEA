@@ -29,11 +29,13 @@ private:
 		//T *new_buffer = reinterpret_cast<T*>(::operator new(_capacity * sizeof(T)));
 
 		T *new_buffer = reinterpret_cast<T*>(malloc(addition * sizeof(T)));
+		// new and delete call constructurs and destructors respectively
+		// increases size without calling unnecessary default-constructors
 		if (_buffer) {
 			for (size_t i = 0; i < _size; ++i)
 				new_buffer[i] = std::move(_buffer[i]);	
 			_clear();
-			free(_buffer);
+			free(_buffer); // pairs with malloc
 		}
 		//::operator delete(reinterpret_cast<void*>(_buffer), _capacity * sizeof(T));
 		_buffer = new_buffer;
@@ -180,6 +182,7 @@ public:
 			_cached_hash = 0;
 			for (size_t i = 0; i < _size; ++i)
 				_cached_hash ^= std::hash<T>()(_buffer[i]) + 0x9e3779b9 + (_cached_hash << 6) + (_cached_hash >> 2);
+			// hash-combinining algorithm made by people much smarted than me
 			// https://www.boost.org/doc/libs/1_55_0/doc/html/hash/reference.html
 		}
 		return _cached_hash;

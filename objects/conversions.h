@@ -25,6 +25,7 @@ template <typename T>
 using GetCorrespondingType =
 	typename CorrespondingType<std::remove_reference_t<T>>::Tp;
 
+MAKE_TYPE_CONVERSION(Aliases::CustomT, Aliases::CustomT, Types::custom, false)
 MAKE_TYPE_CONVERSION(std::string, std::string, Types::string, true)
 MAKE_TYPE_CONVERSION(bool, bool, Types::boolean, true)
 MAKE_TYPE_CONVERSION(std::nullptr_t, std::nullptr_t, Types::null, true)

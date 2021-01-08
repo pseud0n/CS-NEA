@@ -1,14 +1,15 @@
 #ifndef INTERNAL_OBJECT_H
 #define INTERNAL_OBJECT_H
 
+class InternalObjectNoValue {};
+// 1 byte, since must have memory which can be referenced
 
-template <typename StoredT = void*> // e.g. int, then MyT = cpp_int
-// void* is just a filler value (void is not available)
-struct InternalObject {
+template <typename StoredT = InternalObjectNoValue> // e.g. int, then MyT = cpp_int
+class InternalObject {
+public:
 	/*
 	This object is constructed from a type which is then mapped to a type which it stores.
 	*/
-	using AttrsT = std::unordered_map<std::string, OPTR>;
 	using RefCountT = unsigned short;
 
 	Types type;

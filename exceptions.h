@@ -7,7 +7,7 @@
     name(const char* msg) { message = msg; } \
     void operator()() const { cerr << #name << " : " << message << "\n"; }};
 
-namespace UL {
+//namespace UL {
 
     struct VirtualExc {
         const char *message;
@@ -50,7 +50,7 @@ namespace UL {
         void operator ()() { cerr << "ArgExc" << ": " << message << "\n"; }
     };
     */
-}
+//}
 
 #undef EXC_CLASS
 
