@@ -21,11 +21,7 @@ struct ExternalObject {
 	static void* make_dict(const KVs&...);
 
 	
-	static ExternalObject blank_object() {
-		ExternalObject object;
-		object.io_ptr = new InternalObject<Aliases::CustomT>;
-		return object;
-	}
+	static ExternalObject blank_object();
 	
 
 	ExternalObject(); // Default constructor
@@ -42,7 +38,6 @@ struct ExternalObject {
 	#endif
 	*/
 
-
 	ExternalObject(ExternalObject&&) noexcept; // Move constructor
 	ExternalObject& operator =(ExternalObject&&) noexcept; // Move assignment
 
@@ -53,6 +48,8 @@ struct ExternalObject {
 	template <typename T> ExternalObject& operator =(T);
 
 	~ExternalObject();
+
+	//ExternalObject operator () const;
 	
 	template <typename T> T& get() const;
 	Types type() const;
@@ -60,6 +57,13 @@ struct ExternalObject {
 	//void ExternalObject::create_from_blank(const T& construct_from);
 	template <typename T> void create_from_blank(T, bool=false);
 	template <typename CastT> typename std::remove_reference_t<CastT> cast() const;
+
+	//ExternalObject simple_get_attr(const char* name) const;
+	Aliases::CustomT& attrs_of() const;
+	std::optional<ExternalObject> simple_get_attr(const char* name);
+	//std::optional<ExternalObject> class_get_attr;
+	ExternalObject get_attr(const char* name);
+	// get_attr isn't necessarily const!
 	
 };
 

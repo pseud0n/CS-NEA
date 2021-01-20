@@ -3,7 +3,7 @@
 //INCLUDED(FORWARD_DECL)
 //Included("forward_decl");
 
-#define OPTR UL::ObjectPointer
+//#define OPTR UL::ObjectPointer
 
 namespace UL {
 
@@ -30,6 +30,7 @@ namespace UL {
 		The value is not constant and all operations are in-place
 		 */
 		boolean,
+		
 		cpp_function,
 		/*
 		Does not have an associated union type
@@ -53,6 +54,8 @@ namespace UL {
 			They are more efficient since you can interpret arguments as a variety of other types for efficiency
 			Function returns an Object
 		*/
+		cpp_function_view,
+
         bytecode_function,
 
 		pair,
@@ -95,22 +98,7 @@ namespace UL {
     struct UserDefinedObject;
 	class Pair;
 	struct ExternalObject;
-	
-
-	namespace TypeAliases {
-		using BlankT 				= bool;
-		using NullT 				= bool; // 1 byte
-		using NumT 					= bmp::cpp_int;
-		using BoolT 				= bool;
-		using StringT 				= std::string;
-		using CppFunctionT 			= CppFunction;
-		using ByteCodeFunctionT 	= ByteCodeFunction;
-		using PairT 				= const std::pair<OPTR, OPTR>;
-		using ArrayT 				= const std::vector<OPTR>;
-		using ListT 				= std::list<OPTR>;
-		using DictT 				= std::unordered_map<OPTR, OPTR>;
-		using UserDefObjT 			= UserDefinedObject;
-	}
+	class FunctionView;
 
 	namespace Aliases {
 		using BlankT 				= bool;
@@ -119,43 +107,14 @@ namespace UL {
 		using BoolT 				= bool;
 		using StringT 				= std::string;
 		using CppFunctionT 			= CppFunction;
+		using CppFunctionViewT		= FunctionView;
 		using ByteCodeFunctionT 	= ByteCodeFunction;
 		using PairT 				= std::pair<ExternalObject, ExternalObject>;
 		using ArrayT 				= DynamicArray<ExternalObject>;
 		using ListT 				= std::list<ExternalObject>;
 		using DictT 				= std::unordered_map<ExternalObject, ExternalObject>;
-		using CustomT	 			= std::unordered_map<const char*, ExternalObject>;
+		using CustomT	 			= typename std::unordered_map<const char*, ExternalObject>;
 	}
 
-    union ObjectUnion {
-        // Note that there is no 'null type' since it's a constant
-		TypeAliases::BlankT	*blank_val;		//
-        TypeAliases::NumT		*numerical_val; // boost::multiprecision::cpp_int
-        std::string 			*string_val; 	// std::string pointer
-        CppFunction 			*function_val; 	// C++ function
-        ByteCodeFunction 		*bytecode_val;	// Bytecode function, which stores a start val & number of lines
-		TypeAliases::PairT 	*pair_val;		// 2 objects
-        TypeAliases::ArrayT	*vector_val; 	// Vector of objects
-		TypeAliases::ListT		*list_val;		// Linked list
-		TypeAliases::DictT 	*dict_val;		// Dictionary
-        UserDefinedObject		*udo_val;
-    };
-
-    #include "object.h"
-
-    struct UserDefinedObject {
-        std::unordered_map<std::string, OPTR> attributes;
-        //template <typename... KeyValuePairT> UserDefinedObject(KeyValuePairT...);
-        UserDefinedObject(std::unordered_map<std::string, OPTR>);
-        OPTR get_attribute(std::string) const;
-        template <typename AlternateReturnT> AlternateReturnT get_attribute(std::string name, AlternateReturnT alternate_value) const;
-        //std::string get_attribute(std::string name, std::string alternate_value);
-        bool has_attribute(std::string name) const;
-        void delete_attribute(std::string name);
-    };
-}
-
-//std::ostream& operator <<(std::ostream& stream, const UL::Object& object);
-//std::ostream& operator <<(std::ostream&, const UL::Types);
-
+} // UL
 #endif

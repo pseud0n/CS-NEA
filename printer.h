@@ -10,8 +10,8 @@
 #define OSTREAM_HEADER(type, name) std::ostream& operator <<(std::ostream& stream, type name)
 
 #define ITER_OVERLOAD(type)																							\
-	template <typename  Ts>																							\
-	OSTREAM_HEADER(const type<Ts>&, object) {																		\
+	template <typename...  Ts>																							\
+	OSTREAM_HEADER(const type<Ts...>&, object) {																		\
 		stream << "{";																								\
 		for (auto it = object.begin(); it != object.end(); ++it) { /* auto: std::type<ElementT>::iterator */		\
 			if (it != object.begin()) stream << ", ";																\
@@ -32,7 +32,7 @@ std::ostream& operator <<(std::ostream& stream, std::nullptr_t) {
 ITER_OVERLOAD(std::vector)
 //ITER_OVERLOAD(const std::vector)
 ITER_OVERLOAD(std::unordered_set)
-//ITER_OVERLOAD(std::unordered_map)
+ITER_OVERLOAD(std::unordered_map)
 ITER_OVERLOAD(std::initializer_list)
 
 template <typename T>
@@ -64,7 +64,7 @@ std::string repr_arg_count_error(size_t min, size_t optional, bool is_variadic, 
 	if (entered < min || (!is_variadic && entered > min + optional)) {
 		error << "Entered " << entered << " arguments but function requires ";
 		if (is_variadic) error << " at least " << min << " arguments";
-		else if (optional == min) error << "exactly " << min << " arguments";
+		else if (optional == 0) error << "exactly " << min << " argument" << (min == 1 ? "":"s");
 		else error << min << " to " << optional + min;
 	}
 	return error.str();
@@ -72,20 +72,6 @@ std::string repr_arg_count_error(size_t min, size_t optional, bool is_variadic, 
 
 
 namespace UL {
-
-	OSTREAM_HEADER(const UserDefinedObject&, user_defined_object) {
-		return stream << user_defined_object.get_attribute<std::string>("string", "<No available repr>");
-		//return stream << user_defined_object.get_attribute("string", "<No available repr>");
-		//return stream << "<A string>";
-		;
-		/*
-		user_defined_object.get_attribute("string", (std::string)[&user_defined_object](){
-			std::stringstream stream;
-			stream << "<UDO " << &user_defined_object << ">";
-			return stream.str();
-		}());
-		*/
-	}
 
 	#define TP_CASE(type) case Types::type: return stream << #type;
 
@@ -98,6 +84,7 @@ namespace UL {
 			TP_CASE(string)
 			TP_CASE(boolean)
 			TP_CASE(cpp_function)
+			TP_CASE(cpp_function_view)
 			TP_CASE(bytecode_function)
 			TP_CASE(list)
 			TP_CASE(array)
@@ -110,55 +97,6 @@ namespace UL {
 	}
 
 	#undef TP_CASE
-
-	OSTREAM_HEADER(const Object&, object) {
-
-
-		if ((void*)object.union_val.numerical_val == 0) // Since all pointers are stored in the same place, it doesn't matter which pointer is chosen
-			if (object.type != Types::null) return stream << "<Void>";
-		switch (object.type) {
-			case Types::null:
-				return stream << "<Null>";
-			case Types::number:
-				return stream << *object.union_val.numerical_val;
-			case Types::string:
-				return stream << "\"" << *object.union_val.string_val << "\"";
-			case Types::cpp_function:
-				return stream << "<Cpp Function " << &object << ">";
-			case Types::bytecode_function:
-				return stream << "<BC Function " << &object << ">";
-			case Types::custom:
-				return stream << *object.union_val.udo_val;
-			case Types::list:
-			{ // Since cases are labels, local variable sstream must exist in own scope
-				std::stringstream sstream;
-				sstream << "[";
-				for (auto it = object.union_val.vector_val->begin(); it != object.union_val.vector_val->end(); ++it) {
-					if (it != object.union_val.vector_val->begin()) sstream << ", ";
-					sstream << *it->object_ptr;
-				}
-				sstream << "]";
-				return stream << sstream.str();
-			}
-			case Types::array:
-				return stream << "ARRAY";
-			default:
-				return stream; // Fallback; should not be visited under expected circumstances
-		}
-	}
-
-
-	OSTREAM_HEADER(OPTR, optr) {
-		return stream << "OPTR(" << *optr.object_ptr << ")";
-	}
-
-	const char* r_optr_strength(const OPTR& optr) {
-		return optr.is_weak ? "weak" : "strong";
-	}
-
-	const char* r_optr_constness(Object* object) {
-		return object->is_const ? "const" : "non-const";
-	}
 	
 	OSTREAM_HEADER(const ExternalObject&, eobject) {
 		if (!eobject.io_ptr)
@@ -174,6 +112,8 @@ namespace UL {
 				return stream << '\'' << eobject.get<Aliases::StringT>() << '\'';
 			case Types::cpp_function:
 				return stream << "<C++ Function>";
+			case Types::cpp_function_view:
+				return stream << "<C++ Function View>";
 			case Types::bytecode_function:
 				return stream << "<Bytecode Function>";
 			case Types::pair:
@@ -236,8 +176,8 @@ namespace UL {
 				return stream;
 			}
 			case Types::custom:
-				stream << "Object";
-				stream.operator<< <Aliases::CustomT>(eobject.get<Aliases::CustomT>());
+				stream << "Object@" << eobject.io_ptr;
+				//2stream.operator<< <Aliases::CustomT>(eobject.get<Aliases::CustomT>());
 				return stream;
 			default:
 				break;

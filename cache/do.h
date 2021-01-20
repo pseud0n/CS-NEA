@@ -7,14 +7,13 @@ using std::cout;
 
 //cout.setstate(std::ios_base::failbit);
 
-//auto blank_function = new UL::CppFunction({}, false, DY_LMBD { return new UL::Object(nullptr); });
+//auto blank_function = new CppFunction({}, false, DY_LMBD { return new Object(nullptr); });
 
 cout << "Caching integers\n";
 
 for (int i = MIN_CACHED_INTEGER_VALUE; i <= MAX_CACHED_INTEGER_VALUE; ++i) {
-    UL::cached_numbers[i - MIN_CACHED_INTEGER_VALUE] = new UL::Object(i);
 	
-	UL::Cache::numbers[i - MIN_CACHED_INTEGER_VALUE] = new UL::InternalObject<UL::Aliases::NumT>(UL::Aliases::NumT(i));
+	Cache::numbers[i - MIN_CACHED_INTEGER_VALUE] = new InternalObject<Aliases::NumT>(Aliases::NumT(i));
 }
 
 //cout.clear();

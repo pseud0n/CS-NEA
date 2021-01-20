@@ -1,5 +1,5 @@
-HEADERS := $(shell find -regextype sed -regex ".*/[a-z_]*[a-z]\.h")
-# All nested header files (.h)
+HEADERS := $(shell find -regextype posix-egrep -regex ".*/[a-z_]*[a-z]\.(cpp|h)")
+# All nested header files (.h) and source files (.cpp)
 
 all: a.out
 

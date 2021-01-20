@@ -11,13 +11,6 @@ namespace std {
     };
 
 	template <>
-	struct hash<OPTR> {
-		size_t operator ()(const OPTR& optr) const noexcept {
-			return (size_t)optr.object_ptr; // TEMPORARY
-		}
-	};
-
-	template <>
 	struct hash<UL::ExternalObject> {
 		size_t operator ()(const UL::ExternalObject& object) const noexcept {
 			return (size_t)object.io_ptr; // TEMPORARY

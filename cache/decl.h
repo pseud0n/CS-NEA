@@ -22,8 +22,8 @@ namespace Cache {
 		min = MIN_CACHED_INTEGER_VALUE,
 		max = MAX_CACHED_INTEGER_VALUE;
 
-	void *bool_true = 	new InternalObject<UL::Aliases::BoolT>(true);
-	void *bool_false = 	new InternalObject<UL::Aliases::BoolT>(false);
+	void *bool_true = 	new InternalObject<Aliases::BoolT>(true);
+	void *bool_false = 	new InternalObject<Aliases::BoolT>(false);
 	/*
 	*/
 

@@ -1,6 +1,18 @@
 #ifndef EXCEPTIONS_H
 #define EXCEPTIONS_H
 
+/*
+Exceptions have no specific instruction or keyword to make them run like you may
+find in other languages.
+
+When a bytecode instruction results in an error, the top scope is safely deleted
+and the error is set to whatever was raised. Scopes are continually deleted
+until a scope is found which has a catch for that specific error. Code blocks
+have a list of exceptions that it will catch and corresponding code blocks to
+run. An exception can also be called from a built-in function, which will
+do the same procedure. If the last scope is deleted, the program exits with a
+failure.
+*/
 
 #define EXC_CLASS(name, base) struct name : base { \
     name() { message = "<No message>"; } \
