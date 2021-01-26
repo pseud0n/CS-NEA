@@ -293,7 +293,7 @@ public:
 	class Iterator {
 	public:
 		using Category = std::random_access_iterator_tag;
-		using Distance = std::ptrdiff_t;
+		//using Distance = std::ptrdiff_t;
 
 		Iterator(T* pointer) : _pointer(pointer) {
 		}

@@ -8,7 +8,6 @@ void* ExternalObject::make_array(Ts... construct_from) {
 	((
 		[&](){
 			temp->stored_value[i++] = construct_from;
-			//print(construct_from, i, temp->stored_value);
 		}()
 	), ...);
 	return reinterpret_cast<void*>(temp);
@@ -20,7 +19,7 @@ void* ExternalObject::make_pair(K key, V value) {
 	auto temp = new InternalObject<Aliases::PairT>();
 	temp->stored_value.first 	= key;
 	temp->stored_value.second 	= value;
-	return (void*)temp;
+	return reinterpret_cast<void*>(temp);
 }
 
 template <typename K, typename V, typename... KVs>
@@ -30,7 +29,8 @@ void ExternalObject::make_dict_helper(Aliases::DictT& u_map_ref, const K& key, c
 	make_dict_helper(u_map_ref, Ks...);
 }
 
-void ExternalObject::make_dict_helper(Aliases::DictT&) { // Does absolutely nothing! (sort of)
+void ExternalObject::make_dict_helper(Aliases::DictT&) {
+	// Does absolutely nothing! (sort of)
 }
 
 template <typename... KVs>
@@ -50,7 +50,13 @@ ExternalObject ExternalObject::blank_object() {
 	return object;
 }
 
-ExternalObject::ExternalObject() : is_weak(true), io_ptr((void*)0) {
+
+template <typename T>
+static void* specific_object() {
+	return InternalObject<T>();
+}
+
+ExternalObject::ExternalObject() : is_weak(true), io_ptr(0) {
 	cout << "Constructing new Null ExternalObject\n";
 }
 
@@ -198,22 +204,40 @@ ExternalObject::~ExternalObject() {
 #undef DEL_IO_PTR
 
 template <typename T>
-ExternalObject::ExternalObject(T construct_from, bool is_weak) {
+ExternalObject::ExternalObject(T&& construct_from, bool is_weak) {
 	/*
 	The 'type' of an InternalObject is the type it is constructed from.
 	Object may be copied or moved into construct_from, but is never
 	copied after that
 	*/
-	create_from_blank<T>(std::move(construct_from), is_weak);
+	create_from_blank<T>(std::forward<T>(construct_from), is_weak);
+	/*
+	Perfectly forwards lvaue or rvalue reference.
+	Object may be constructed from either.
+	*/
 }
 
 template <typename T>
-ExternalObject& ExternalObject::operator =(T construct_from) {
+ExternalObject& ExternalObject::operator =(T&& construct_from) {
 	print("Assigning from", construct_from);
-	create_from_blank<T>(std::move(construct_from));
+	create_from_blank<T>(std::forward<T>(construct_from));
 	return *this;
 }
 
+ExternalObject ExternalObject::operator ()(std::vector<ExternalObject>& args) {
+	switch (type()) {
+		case Types::cpp_function:
+			return get<Aliases::CppFunctionT>()(args);
+		case Types::cpp_function_view:
+			return get<Aliases::CppFunctionViewT>()(args);
+		default:
+			return get_attr("Call")(args);
+	}
+}
+
+ExternalObject ExternalObject::operator ()() {
+	return (*this)(CppFunction::empty_eobject_vec);
+}
 
 template <typename T>
 T& ExternalObject::get() const {
@@ -327,30 +351,32 @@ std::optional<ExternalObject> ExternalObject::simple_get_attr(const char* name) 
 ExternalObject ExternalObject::get_attr(const char* name) {
 	Aliases::CustomT&		   attrs   = attrs_of();
 	Aliases::CustomT::iterator attr_it = attrs.find(name);
-	print("-Looking for attr", name);
-	print("-Lookin in", attrs);
+	//print("-Looking for attr", name);
+	//print("-Lookin in", attrs);
 	if (attr_it == attrs.end()) {
 		// Now look in type
 		attrs = attrs.at("Type").get<Aliases::CustomT>();
 		Aliases::CustomT::iterator type_attr_it = attrs.find(name);
-		print("-Look in class", attrs);
+		//print("-Look in class", attrs);
 		if (type_attr_it == attrs.end()) {
-			print("-Not found!");
+			//print("-Not found!");
+			Exc::Lookup("Attr not found");
 			return nullptr;
 		} else {
-			print("-Found!");
+			//print("-Found!");
 			if (type_attr_it->second.type() == Types::cpp_function) {
 				print("-It was a function!");
-				auto fv = FunctionView(&type_attr_it->second.get<Aliases::CppFunctionT>(), *this);
+				auto fv = FunctionView(type_attr_it->second.get<Aliases::CppFunctionT>(), *this);
 				return fv;
 			}
 			return type_attr_it->second;
 		}
 	} else {
 		// Found attribute
-		print("-Found in object");
+		//print("-Found in object");
 		return attr_it->second;
 	}
+	Exc::Lookup("Attr not found");
 	return nullptr;
 }
 

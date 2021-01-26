@@ -1,7 +1,7 @@
 #ifndef CPP_FUNCTION_CPP
 #define CPP_FUNCTION_CPP
 
-std::string CppFunction::repr_arg_type_error(const CppFunction& cpp_function, const std::vector<ExternalObject>& arguments) {
+std::string CppFunction::repr_arg_type_error(const CppFunction& cpp_function, std::vector<ExternalObject>& arguments) {
 	std::stringstream error;
 	//print("here");
 	if (cpp_function.has_type_requirement) {
@@ -37,6 +37,7 @@ CppFunction::CppFunction(
 	: optional_arguments(optional_arguments), is_variadic(is_variadic), function(func),
 		required_types(required_types), variadic_type(variadic_type),
 		has_type_requirement(!required_types.empty()) {
+	cout << "Constructing CppFunction " << this << '\n';
 	//print("CF CONSTRUCT", function ? "callable" : "not callable");
 }
 
@@ -44,9 +45,11 @@ CppFunction::CppFunction(const CppFunction& from) // Copy constructor
 	: optional_arguments(from.optional_arguments), is_variadic(from.is_variadic),
 	  function(from.function), required_types(from.required_types),
 	  has_type_requirement(from.has_type_requirement) {
+	print("Copy-constructing", &from, "to", this);
 }
 
 CppFunction& CppFunction::operator =(const CppFunction& from) {
+	print("Copy-assigning", &from, "to", this);
 	optional_arguments = from.optional_arguments;
 	is_variadic = from.is_variadic;
 	function = from.function;
@@ -55,12 +58,22 @@ CppFunction& CppFunction::operator =(const CppFunction& from) {
 	return *this;
 }
 
-CppFunction& CppFunction::operator =(CppFunction&& from) noexcept {
+CppFunction::CppFunction(CppFunction&& from) noexcept {
+	print("Move-constructing", &from, "to", this);
 	optional_arguments = std::move(from.optional_arguments);
 	is_variadic = from.is_variadic;
 	function = std::move(from.function);
 	required_types = std::move(from.required_types);
-	has_type_requirement = std::move(from.has_type_requirement);
+	has_type_requirement = from.has_type_requirement;
+}
+
+CppFunction& CppFunction::operator =(CppFunction&& from) noexcept {
+	print("Move-constructing", &from, "to", this);
+	optional_arguments = std::move(from.optional_arguments);
+	is_variadic = from.is_variadic;
+	function = std::move(from.function);
+	required_types = std::move(from.required_types);
+	has_type_requirement = from.has_type_requirement;
 	return *this;
 }
 
@@ -72,7 +85,7 @@ CppFunction::~CppFunction() {
 	*/
 }
 
-ExternalObject CppFunction::operator ()(const std::vector<ExternalObject>& args) const {
+ExternalObject CppFunction::operator ()(std::vector<ExternalObject>& args) const {
 	return function(this, args);
 }
 
@@ -82,7 +95,7 @@ ExternalObject CppFunction::operator ()() const { // Simple function which takes
 
 //ExternalObject operator ()(ExternalObject self, ) 
 template <size_t MinArgCount, typename... TypesT>
-bool CppFunction::assign_args(const std::vector<ExternalObject>& inputs, TypesT&... outputs)const {
+bool CppFunction::assign_args(std::vector<ExternalObject>& inputs, TypesT&... outputs)const {
 	/*
 	This function is used when assigning arguments in a non-variadic function.
 	It takes the inputs and outputs and simply maps them (also taking optional arguments into account)
@@ -170,7 +183,7 @@ bool CppFunction::assign_args(const std::vector<ExternalObject>& inputs, TypesT&
 }
 
 template <size_t MinArgCount, typename VariadicType, typename... TypesT>
-bool CppFunction::assign_variadic_args(const std::vector<ExternalObject>& inputs, std::vector<VariadicType>* variadic_var, TypesT&... outputs) const {
+bool CppFunction::assign_variadic_args(std::vector<ExternalObject>& inputs, std::vector<VariadicType>* variadic_var, TypesT&... outputs) const {
 	*variadic_var = std::vector<VariadicType>(); // vector should be initialised regardless of arguments entered
 
 	//cout << "And Here\n";
@@ -184,7 +197,7 @@ bool CppFunction::assign_variadic_args(const std::vector<ExternalObject>& inputs
 }
 
 template <typename VariadicType>
-void CppFunction::assign_variadic_args(size_t non_variadic_count, const std::vector<ExternalObject>& inputs, std::vector<VariadicType>* variadic_var) const {
+void CppFunction::assign_variadic_args(size_t non_variadic_count, std::vector<ExternalObject>& inputs, std::vector<VariadicType>* variadic_var) const {
 	//cout << "VC: " << inputs.size() - non_variadic_count << "\n";
 	for (size_t variadic_argument_traverser = non_variadic_count; variadic_argument_traverser < inputs.size(); ++variadic_argument_traverser) {
 		//cout << "VAT: " << variadic_argument_traverser << " " << *inputs[variadic_argument_traverser] << " is now ";

@@ -2,14 +2,13 @@
 #define CPP_FUNCTION_H
 
 class CppFunction {
-private:
-	using FuncT = std::function<ExternalObject(CppFunction const*, const std::vector<ExternalObject>&)>;
-
-	static inline const std::vector<ExternalObject> empty_eobject_vec;
-	static inline const std::vector<Types> 			empty_type_vec;
-
-	static std::string repr_arg_type_error(const CppFunction& cpp_function, const std::vector<ExternalObject>& arguments);
 public:
+	using FuncT = std::function<ExternalObject(CppFunction const*, std::vector<ExternalObject>&)>;
+
+	static inline std::vector<ExternalObject> empty_eobject_vec;
+	static inline std::vector<Types> 			empty_type_vec;
+
+	static std::string repr_arg_type_error(const CppFunction& cpp_function, std::vector<ExternalObject>& arguments);
 	/*
 	Functor class which represents a function written in C++
 	A CppFunction accepts any number of arguments and input variables of C++ types
@@ -34,16 +33,17 @@ public:
 		const std::vector<Types>& = empty_type_vec, Types = Types::any);
 	CppFunction(const CppFunction&);
 	CppFunction& operator =(const CppFunction&);
+	CppFunction(CppFunction&&) noexcept;
 	CppFunction& operator =(CppFunction&&) noexcept;
 	~CppFunction();
 
-	ExternalObject operator ()(const std::vector<ExternalObject>&) const;
+	ExternalObject operator ()(std::vector<ExternalObject>&) const;
 	ExternalObject operator ()(									 ) const;
 
 	template <size_t MinArgCount, typename... TypesT>
-	bool assign_args(const std::vector<ExternalObject>&, TypesT&...) const;
-	template <size_t MinArgCount, typename VariadicType, typename... TypesT> bool assign_variadic_args(const std::vector<ExternalObject>&, std::vector<VariadicType>*, TypesT&...) const;
+	bool assign_args(std::vector<ExternalObject>&, TypesT&...) const;
+	template <size_t MinArgCount, typename VariadicType, typename... TypesT> bool assign_variadic_args(std::vector<ExternalObject>&, std::vector<VariadicType>*, TypesT&...) const;
 	template <typename VariadicType>
-	void assign_variadic_args(size_t, const std::vector<ExternalObject>&, std::vector<VariadicType>*) const;
+	void assign_variadic_args(size_t, std::vector<ExternalObject>&, std::vector<VariadicType>*) const;
 };
 #endif

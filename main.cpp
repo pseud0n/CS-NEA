@@ -23,10 +23,45 @@ int main() {
 
 		//#include "tests/objects.h"
 		print("Hai, Sensei!");
+
 		UL::ExternalObject str("sArCaSm!"s);
 
-		print(str.get_attr("lower").get<UL::Aliases::CppFunctionViewT>()({}));
-		//print(str.get_attr();
+		/*
+		UL::ExternalObject attr = str.get_attr("length");
+		print("-----------");
+		print(attr);
+		*/
+
+		using namespace UL;
+		
+		CppFunction func = make_monadic_method<Aliases::StringT, Aliases::StringT>(
+			[](Aliases::StringT& str) -> Aliases::StringT {
+				std::for_each(
+					str.begin(), str.end(),
+					[](char& c) { c = std::toupper(c); }
+				);
+				return str;
+			}
+		);
+		
+		/*
+		CppFunction func = CppFunction(
+			{}, false, UL_LMBD {
+				std::string str_obj;
+				if (!argument_data->assign_args<1>(arguments, str_obj)) {
+					return nullptr;
+				}
+				std::for_each(str_obj.begin(), str_obj.end(), [](char& c) { c = std::tolower(c); });
+				return str_obj;
+			}, {UL::Types::string}
+		);
+		*/
+
+		print("Making eo");
+
+		ExternalObject eo = func;
+
+		print("Made eo");
 				
 		cout << SEP "EXITED LOCAL SCOPE\n";
 	}

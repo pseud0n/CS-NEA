@@ -22,6 +22,9 @@ struct ExternalObject {
 
 	
 	static ExternalObject blank_object();
+
+	template <typename T>
+	static void* specific_object();
 	
 
 	ExternalObject(); // Default constructor
@@ -45,11 +48,14 @@ struct ExternalObject {
 	ExternalObject& operator =(const ExternalObject&); // Move assignment
 
 	template <typename T> ExternalObject(T, bool=false);
-	template <typename T> ExternalObject& operator =(T);
+	template <typename T> ExternalObject& operator =(T&&);
 
 	~ExternalObject();
 
-	//ExternalObject operator () const;
+	ExternalObject operator ()(std::vector<ExternalObject>&);
+	// Cannot guarantee const-ness!
+	ExternalObject operator ()();
+	// Call to method (1 arg) or function (0 args)
 	
 	template <typename T> T& get() const;
 	Types type() const;
@@ -64,6 +70,12 @@ struct ExternalObject {
 	//std::optional<ExternalObject> class_get_attr;
 	ExternalObject get_attr(const char* name);
 	// get_attr isn't necessarily const!
+
+	/*
+	ExternalObject operator () {
+
+	}
+	*/
 	
 };
 

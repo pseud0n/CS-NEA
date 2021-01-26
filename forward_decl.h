@@ -7,6 +7,8 @@
 
 namespace UL {
 
+	class NullType {};
+
     enum class Types {
 		any,
         blank,
@@ -88,6 +90,11 @@ namespace UL {
 		/*
 		Can be instantiated to an object which can be instantiated
 		*/
+
+		base_exception,
+		/*
+		Causes deletion of all scopes until catch
+		*/
         
         custom
 	};
@@ -113,7 +120,8 @@ namespace UL {
 		using ArrayT 				= DynamicArray<ExternalObject>;
 		using ListT 				= std::list<ExternalObject>;
 		using DictT 				= std::unordered_map<ExternalObject, ExternalObject>;
-		using CustomT	 			= typename std::unordered_map<const char*, ExternalObject>;
+		using BaseExceptionT		= NullType;
+		using CustomT	 			= std::unordered_map<const char*, ExternalObject>;
 	}
 
 } // UL

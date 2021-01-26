@@ -197,13 +197,13 @@ namespace UL {
 	} // namespace Tracker
 } // namespace UL
 
-#define UL_LMBD [](UL::CppFunction const* argument_data, const std::vector<UL::ExternalObject>& arguments) -> UL::ExternalObject
+#define UL_LMBD [&](UL::CppFunction const* argument_data, std::vector<UL::ExternalObject>& arguments) -> UL::ExternalObject
 //Macro for defining the lambda for a CppFunction as `DY_LMBD { stuff }`
 
 namespace Utils {
 	/* Commented is a 'possible implementation' of std::apply from <utility> from https://en.cppreference.com/w/cpp/utility/apply
 	`inplace_tuple_slice_apply` is a modification of this
-	*****************************************************************************************************************************
+	*******************************************************
 
 	namespace detail {
 	template <class F, class Tuple, std::size_t... I>
@@ -350,10 +350,30 @@ namespace UL {
 	#include "cpp_function.cpp"
 	#include "function_view.cpp"
 
+	#define ADD_OBJECT(name) ExternalObject name = Aliases::CustomT();
+
 	namespace Classes {
-		ExternalObject object = Aliases::CustomT();
-		ExternalObject string = Aliases::CustomT();
+		ADD_OBJECT(object)
+		ADD_OBJECT(string)
+		ADD_OBJECT(base_exception)
 	} // Classes
+	
+	#undef ADD_OBJECT
+
+	template <typename T, typename R=ExternalObject> // F is implicit
+	CppFunction make_monadic_method (std::function<R(T&)>&& code) {
+		CppFunction temp(
+			{}, false, UL_LMBD {
+				GetCorrespondingType<T> self_obj; // Argument stored in function view
+				if (!argument_data->assign_args<1>(arguments, self_obj)) {
+					return nullptr;
+				}
+				return std::invoke(code, self_obj);
+				// `code` is a lambda e.g. [](Aliases::NumT x){ return x + 1; }
+			}, {AssociatedData<T>::enum_type}
+		);
+		return temp;
+	}
 
 } // UL
 

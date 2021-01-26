@@ -91,16 +91,39 @@ class_ptr->try_emplace("Type", Classes::object, true);
 
 class_ptr = &Classes::string.get<Aliases::CustomT>();
 class_ptr->try_emplace("Type", Classes::object, true);
-class_ptr->try_emplace("lower", CppFunction(
-	{}, false, UL_LMBD {
-		std::string str_obj;
-		if (!argument_data->assign_args<1>(arguments, str_obj)) {
-			return nullptr;
+class_ptr->try_emplace("lower",
+	make_monadic_method<Aliases::StringT, Aliases::StringT>(
+		[](Aliases::StringT& str) -> Aliases::StringT {
+			std::for_each(
+				str.begin(), str.end(),
+				[](char& c) { c = std::tolower(c); }
+			);
+			return str;
 		}
-		std::for_each(str_obj.begin(), str_obj.end(), [](char& c) { c = std::tolower(c); });
-		return str_obj;
-	}, {UL::Types::string}
-));
+	)
+);
+class_ptr->try_emplace("lower",
+	make_monadic_method<Aliases::StringT, Aliases::StringT>(
+		[](Aliases::StringT& str) -> Aliases::StringT {
+			std::for_each(
+				str.begin(), str.end(),
+				[](char& c) { c = std::toupper(c); }
+			);
+			return str;
+		}
+	)
+);
+
+class_ptr->try_emplace("length",
+	make_monadic_method<Aliases::StringT, size_t>(
+		[](Aliases::StringT& str) -> size_t {
+			return str.size();
+		}
+	)
+);
+
+
+
 
 //print("class_ref:", Classes::object.get<Aliases::CustomT>());
 
