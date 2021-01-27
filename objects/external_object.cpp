@@ -42,7 +42,7 @@ void* ExternalObject::make_dict(const KVs&... Ks) {
 
 ExternalObject ExternalObject::blank_object() {
 	ExternalObject object;
-	auto new_io_ptr = new InternalObject<Aliases::CustomT>;
+	//auto new_io_ptr = new InternalObject<Aliases::CustomT>;
 	//new_io_ptr.stored_value.emplace()
 	cout << "BLANK OBJECT!\n";
 	exit(0);
@@ -103,6 +103,26 @@ ExternalObject::ExternalObject(const ExternalObject& copy_from, bool make_weak) 
 
 ExternalObject& ExternalObject::operator =(const ExternalObject& copy_from) {
 	print("Copy-assigning from", copy_from);
+	is_weak = copy_from.is_weak;
+	io_ptr = copy_from.io_ptr;
+	if (io_ptr) {
+		++refcount();
+		print("Incref'ing", *this, "to", refcount());
+	}
+	return *this;
+}
+
+ExternalObject::ExternalObject(ExternalObject& copy_from, bool make_weak) {
+	print("Semi-copying from", copy_from);
+	is_weak = copy_from.is_weak || make_weak;
+	io_ptr = copy_from.io_ptr;
+	if (io_ptr && !is_weak) {// Also increments references for cached objects
+		++copy_from.refcount(); // Since method returns lvalue
+		print("Incref'ing", *this, "to", refcount());
+	}
+}
+ExternalObject& ExternalObject::operator =(ExternalObject& copy_from) {
+	print("semi-copy-assigning from", copy_from);
 	is_weak = copy_from.is_weak;
 	io_ptr = copy_from.io_ptr;
 	if (io_ptr) {
@@ -258,39 +278,45 @@ InternalObject<>::RefCountT& ExternalObject::refcount() const {
 
 template <typename T>
 void ExternalObject::create_from_blank(T construct_from, bool make_weak) {
+	print("Creating from blank");
 	/*
 	Turns an ExternalObject with io_ptr 0 into a normal object
-	*/
-	/*
-	io_ptr = (void*)(
-		new InternalObject<GetCorrespondingType<T>>(
-			(
-				GetCorrespondingType<T>(std::move(construct_from))
-			)
-		)
-	);
-	*/
-
-	/*
-	Below:
 	
 	If DO_CACHE_DECL, then check if it's a cacheable type.
 	If it's not, 'else' into the standard procedure
 	
-	If undefined, then go straight to standard procedure
+	If undefined, then go straight to standard procedure.
+
+	T may be an lvalue or rvalue reference.
+    If T is an rvalue reference, then it has been passed in as an rvalue.
+    E.g. if a CppFunction rvalue is passed into the constructor, then it needs
+    to forward it, preserving this by moving the value. When the actual object
+    needs to be transferred into an InternalObject, its value is moved into the
+    object.
+
+    If the value passed in was an lvalue reference, then it simply continues
+    referring to it as a reference and does not copy or move it. When it is put
+    into the InternalObject, it is copied so that if the original object is
+    deleted, it will not remove the wrapped object and vice versa; they must act
+    indepentently from one another.
 	*/
 
-	cout << "Constructing new " << AssociatedData<GetCorrespondingType<T>>::enum_type << " ";
-	if constexpr(std::is_same_v<GetCorrespondingType<T>, std::nullptr_t>) {
+	//using blah  = CorrespondingType<T>::Tp;
+	using CorrespondingT = GetCorrespondingType<std::remove_reference_t<T>>;
+	using AssociatedT = AssociatedData<CorrespondingT>;
+	
+
+	cout << "Constructing new " << AssociatedT::enum_type << " ";
+	if constexpr(std::is_same_v<CorrespondingT, std::nullptr_t>) {
 		io_ptr = 0;
 		cout << "0\n";
 		return;
 	}
 	#ifdef DO_CACHE_DECL
-	if constexpr(std::is_same_v<GetCorrespondingType<T>, Aliases::BoolT>) {
+	if constexpr(std::is_same_v<CorrespondingT, Aliases::BoolT>) {
 		io_ptr = construct_from ? Cache::bool_true : Cache::bool_false;
 		is_weak = true; // No reference counting involved
-	} else if constexpr (std::is_same_v<GetCorrespondingType<T>, Aliases::NumT>) {
+	} else if constexpr (std::is_same_v<CorrespondingT, Aliases::NumT>) {
 		int as_int = static_cast<int>(construct_from);
 		// C++-style casts!
 		// Values may be negative so signed is used
@@ -307,12 +333,13 @@ void ExternalObject::create_from_blank(T construct_from, bool make_weak) {
 			// Not weak; object treated regularly
 		}
 	} else {
+		print("Not special");
 	#endif
 		// Always used, regardless of DO_CACHE_DECL
 		is_weak = make_weak;
 		io_ptr = reinterpret_cast<void*>(
-			new InternalObject<GetCorrespondingType<T>>(
-					GetCorrespondingType<T>(std::move(construct_from))
+			new InternalObject<CorrespondingT>(
+					CorrespondingT(std::move(construct_from))
 			)
 		);
 	#ifdef DO_CACHE_DECL

@@ -360,7 +360,7 @@ namespace UL {
 	
 	#undef ADD_OBJECT
 
-	template <typename T, typename R=ExternalObject> // F is implicit
+	template <typename T, typename R=ExternalObject>
 	CppFunction make_monadic_method (std::function<R(T&)>&& code) {
 		CppFunction temp(
 			{}, false, UL_LMBD {
@@ -372,6 +372,7 @@ namespace UL {
 				// `code` is a lambda e.g. [](Aliases::NumT x){ return x + 1; }
 			}, {AssociatedData<T>::enum_type}
 		);
+		print("temp:", &temp);
 		return temp;
 	}
 

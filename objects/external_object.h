@@ -47,7 +47,10 @@ struct ExternalObject {
 	ExternalObject(const ExternalObject&, bool=false); // Copy constructor
 	ExternalObject& operator =(const ExternalObject&); // Move assignment
 
-	template <typename T> ExternalObject(T, bool=false);
+	ExternalObject(ExternalObject&, bool=false);
+	ExternalObject& operator =(ExternalObject&);
+
+	template <typename T> ExternalObject(T&&, bool=false);
 	template <typename T> ExternalObject& operator =(T&&);
 
 	~ExternalObject();
