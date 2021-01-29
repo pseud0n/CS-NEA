@@ -7,7 +7,7 @@ void* ExternalObject::make_array(Ts... construct_from) {
 	size_t i = 0;
 	((
 		[&](){
-			temp->stored_value[i++] = construct_from;
+			(*temp->stored_value)[i++] = construct_from;
 		}()
 	), ...);
 	return reinterpret_cast<void*>(temp);
@@ -17,8 +17,8 @@ void* ExternalObject::make_array(Ts... construct_from) {
 template <typename K, typename V>
 void* ExternalObject::make_pair(K key, V value) {
 	auto temp = new InternalObject<Aliases::PairT>();
-	temp->stored_value.first 	= key;
-	temp->stored_value.second 	= value;
+	temp->stored_value->first 	= key;
+	temp->stored_value->second 	= value;
 	return reinterpret_cast<void*>(temp);
 }
 
@@ -36,7 +36,7 @@ void ExternalObject::make_dict_helper(Aliases::DictT&) {
 template <typename... KVs>
 void* ExternalObject::make_dict(const KVs&... Ks) {
 	auto temp = new InternalObject<Aliases::DictT>;
-	make_dict_helper(temp->stored_value, Ks...);
+	make_dict_helper(*temp->stored_value, Ks...);
 	return reinterpret_cast<void*>(temp);
 }
 
@@ -52,8 +52,16 @@ ExternalObject ExternalObject::blank_object() {
 
 
 template <typename T>
-static void* specific_object() {
+void* ExternalObject::specific_object() {
 	return InternalObject<T>();
+}
+
+template <typename T, typename... Ts>
+ExternalObject ExternalObject::emplace(Ts&&... args) {
+	auto io_ptr = new InternalObject<GetCorrespondingType<T>>;
+	// defaults stored_value to std::nullopt
+	io_ptr->stored_value.emplace(std::forward<Ts>(args)...);
+	return reinterpret_cast<void*>(io_ptr);
 }
 
 ExternalObject::ExternalObject() : is_weak(true), io_ptr(0) {
@@ -261,7 +269,7 @@ ExternalObject ExternalObject::operator ()() {
 
 template <typename T>
 T& ExternalObject::get() const {
-	return ((InternalObject<T>*)io_ptr)->stored_value;
+	return *((InternalObject<T>*)io_ptr)->stored_value;
 }
 
 Types ExternalObject::type() const {
@@ -271,8 +279,8 @@ Types ExternalObject::type() const {
 }
 
 
-InternalObject<>::RefCountT& ExternalObject::refcount() const {
-	return *(InternalObject<>::RefCountT*)((Types*)io_ptr + 1);
+InternalObject<InternalObjectNoValue>::RefCountT& ExternalObject::refcount() const {
+	return *(InternalObject<InternalObjectNoValue>::RefCountT*)((Types*)io_ptr + 1);
 	// +1: adds sizeof(Types) bytes to get to bytes for refcount 
 } // We can use this as an lvalue and modify in-place
 
@@ -333,7 +341,6 @@ void ExternalObject::create_from_blank(T construct_from, bool make_weak) {
 			// Not weak; object treated regularly
 		}
 	} else {
-		print("Not special");
 	#endif
 		// Always used, regardless of DO_CACHE_DECL
 		is_weak = make_weak;
@@ -353,7 +360,7 @@ typename std::remove_reference_t<CastT> ExternalObject::cast() const {
 	/*
 	You cast to a type and you get that type from the io_ptr
 	*/
-	return ( (InternalObject<std::remove_reference_t<CastT>>*)io_ptr )->stored_value;
+	return *reinterpret_cast<InternalObject<std::remove_reference_t<CastT>>*>(io_ptr)->stored_value;
 }
 
 Aliases::CustomT& ExternalObject::attrs_of() const {

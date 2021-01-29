@@ -4,7 +4,7 @@
 class InternalObjectNoValue {};
 // 1 byte, since must have memory which can be referenced
 
-template <typename StoredT = InternalObjectNoValue> // e.g. int, then MyT = cpp_int
+template <typename StoredT/* = InternalObjectNoValue*/> // e.g. int, then MyT = cpp_int
 class InternalObject {
 public:
 	/*
@@ -16,14 +16,16 @@ public:
 	RefCountT reference_count;
 	bool is_immovable;
 	//AttrsT *attrs;
-	StoredT stored_value;
+	std::optional<StoredT> stored_value;
 	// unidentified underlying object
 	// Alternatively, a pointer to a dictionary
 	
 	InternalObject();
 	InternalObject(StoredT);
 	~InternalObject();
-	//..
+
+	template <typename... CtorTs>
+	void emplace(CtorTs&&...);
 };
 
 #endif

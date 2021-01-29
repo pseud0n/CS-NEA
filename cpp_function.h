@@ -28,7 +28,7 @@ public:
 
 	CppFunction();
 	CppFunction(
-		std::vector<ExternalObject>, bool,
+		const std::vector<ExternalObject>&, bool,
 		FuncT,
 		const std::vector<Types>& = empty_type_vec, Types = Types::any);
 	CppFunction(const CppFunction&);

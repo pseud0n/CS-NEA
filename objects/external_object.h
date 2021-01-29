@@ -26,6 +26,7 @@ struct ExternalObject {
 	template <typename T>
 	static void* specific_object();
 	
+	template <typename T, typename... Ts> static ExternalObject emplace(Ts&&...);
 
 	ExternalObject(); // Default constructor
 
@@ -62,7 +63,7 @@ struct ExternalObject {
 	
 	template <typename T> T& get() const;
 	Types type() const;
-	InternalObject<>::RefCountT& refcount() const;
+	InternalObject<InternalObjectNoValue>::RefCountT& refcount() const;
 	//void ExternalObject::create_from_blank(const T& construct_from);
 	template <typename T> void create_from_blank(T, bool=false);
 	template <typename CastT> typename std::remove_reference_t<CastT> cast() const;

@@ -316,36 +316,8 @@ namespace UL {
 
 	//#include "lookup.h"
 
-	template <typename StoredT>
-	InternalObject<StoredT>::InternalObject()
-		: type(AssociatedData<StoredT>::enum_type), reference_count(1),
-		  is_immovable(AssociatedData<StoredT>::is_immovable),
-		  stored_value(StoredT()) {}
-
-	template <typename StoredT>
-	InternalObject<StoredT>::InternalObject(StoredT construct_from) // e.g. std::string
-	/*
-		: type(Corresponding<StoredT>::enum_type), is_immovable(Corresponding<StoredT>::is_immovable), reference_count(1), attrs((AttrsT*)0), stored_value(std::move(construct_from)) */{
-		type = AssociatedData<StoredT>::enum_type;
-		reference_count = 1;
-		is_immovable = AssociatedData<StoredT>::is_immovable;
-		//attrs = (AttrsT*)0;
-		stored_value = std::move(construct_from);
-		/*
-		If a large object like a long string is passed in, it should be
-		moved, not copied.
-
-		If we construct from a new dictionary, that can be moved when
-		passed in to the function, or copied otherwise
-		*/
-	}
-
-	template <typename StoredT>
-	InternalObject<StoredT>::~InternalObject() {
-		//if (attrs) delete attrs; // If dictionary exists, delete it
-	};
-
 	#include "objects/external_object.cpp"
+	#include "objects/internal_object.cpp"
 
 	#include "cpp_function.cpp"
 	#include "function_view.cpp"
@@ -361,19 +333,19 @@ namespace UL {
 	#undef ADD_OBJECT
 
 	template <typename T, typename R=ExternalObject>
-	CppFunction make_monadic_method (std::function<R(T&)>&& code) {
-		CppFunction temp(
-			{}, false, UL_LMBD {
+	ExternalObject make_monadic_method (std::function<R(T&)>&& code) {
+		return ExternalObject::emplace<Aliases::CppFunctionT>(
+			CppFunction::empty_eobject_vec, false, UL_LMBD {
 				GetCorrespondingType<T> self_obj; // Argument stored in function view
 				if (!argument_data->assign_args<1>(arguments, self_obj)) {
 					return nullptr;
 				}
 				return std::invoke(code, self_obj);
 				// `code` is a lambda e.g. [](Aliases::NumT x){ return x + 1; }
-			}, {AssociatedData<T>::enum_type}
+			}, std::vector<Types>{AssociatedData<T>::enum_type}
 		);
-		print("temp:", &temp);
-		return temp;
+		//print("temp:", &temp);
+		//return temp;
 	}
 
 } // UL

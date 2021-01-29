@@ -31,7 +31,7 @@ CppFunction::CppFunction()
 }
 
 CppFunction::CppFunction(
-	std::vector<ExternalObject> optional_arguments, bool is_variadic,
+	const std::vector<ExternalObject>& optional_arguments, bool is_variadic,
 	FuncT func,
 	const std::vector<Types>& required_types, Types variadic_type)
 	: optional_arguments(optional_arguments), is_variadic(is_variadic), function(func),

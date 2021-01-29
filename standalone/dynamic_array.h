@@ -156,7 +156,7 @@ public:
 	}
 
 	size_t last() const {
-		return _size - 1;
+		return _buffer[_size - 1];
 	}
 
 	size_t capacity() const {
@@ -182,7 +182,7 @@ public:
 			_cached_hash = 0;
 			for (size_t i = 0; i < _size; ++i)
 				_cached_hash ^= std::hash<T>()(_buffer[i]) + 0x9e3779b9 + (_cached_hash << 6) + (_cached_hash >> 2);
-			// hash-combinining algorithm made by people much smarted than me
+			// hash-combinining algorithm made by people much smarter than me
 			// https://www.boost.org/doc/libs/1_55_0/doc/html/hash/reference.html
 		}
 		return _cached_hash;
@@ -241,7 +241,8 @@ public:
 
 	void pop_back() {
 		invalidate_hash();
-		_buffer[_size - 1].~T(); // Explicit destructor call
+		_buffer[_size - 1].~T();
+		// Explicit destructor call but _buffer memory not deallocated
 		--_size;
 	}
 

@@ -83,6 +83,8 @@ SET_TYPE_STRONG(Types::string, "lower", UL::CppFunction(
 #undef SET_TYPE_STRONG
 */
 
+print("Setting up members");
+
 Aliases::CustomT *class_ptr;
 
 class_ptr = &Classes::object.get<Aliases::CustomT>();
@@ -91,6 +93,7 @@ class_ptr->try_emplace("Type", Classes::object, true);
 
 class_ptr = &Classes::string.get<Aliases::CustomT>();
 class_ptr->try_emplace("Type", Classes::object, true);
+print("HEY");
 class_ptr->try_emplace("lower",
 	make_monadic_method<Aliases::StringT, Aliases::StringT>(
 		[](Aliases::StringT& str) -> Aliases::StringT {
@@ -102,6 +105,7 @@ class_ptr->try_emplace("lower",
 		}
 	)
 );
+print("YA");
 class_ptr->try_emplace("lower",
 	make_monadic_method<Aliases::StringT, Aliases::StringT>(
 		[](Aliases::StringT& str) -> Aliases::StringT {
