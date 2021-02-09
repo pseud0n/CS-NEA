@@ -46,20 +46,6 @@ using AttrsMapT = std::unordered_map<Types, std::unordered_map<const char*, Exte
 
 print("Empty");
 
-for (Types type : {Types::blank, Types::string})
-	builtin_objects.emplace(type, Aliases::CustomT());
-
-#define SET_TYPE_HELPER(type, name, attr, weak) \
-	builtin_objects[type].get<Aliases::CustomT>().emplace(name, ExternalObject(attr, weak));
-
-#define SET_TYPE_WEAK(type, name, attr) \
-	SET_TYPE_HELPER(type, name, attr, true)
-
-#define SET_TYPE_STRONG(type, name, attr) \
-	SET_TYPE_HELPER(type, name, attr, false)
-
-print("Defaults", builtin_objects);
-
 //builtin_objects[Types::blank].get<Aliases::CustomT>().emplace("Type", ExternalObject(builtin_objects[Types::blank], true));
 
 
@@ -83,55 +69,65 @@ SET_TYPE_STRONG(Types::string, "lower", UL::CppFunction(
 #undef SET_TYPE_STRONG
 */
 
+#define EMPLACE(name) class_ptr->emplace(name, std::move(o));
+
+#define REASSIGN(type) \
+	class_ptr = &Classes::type.get<Aliases::CustomT>(); \
+	class_ptr->try_emplace("Type", Classes::object, true);
+
+#define ADD_BASIC_MRO(type) \
+	class_ptr->try_emplace("MRO", MKRRY_W(Classes::type, Classes::object));
+
 print("Setting up members");
 
 Aliases::CustomT *class_ptr;
-
-class_ptr = &Classes::object.get<Aliases::CustomT>();
-class_ptr->try_emplace("Type", Classes::object, true);
-// Pointer of dereference is optimised out automatically
-
-class_ptr = &Classes::string.get<Aliases::CustomT>();
-class_ptr->try_emplace("Type", Classes::object, true);
-print("HEY");
-class_ptr->try_emplace("lower",
-	make_monadic_method<Aliases::StringT, Aliases::StringT>(
-		[](Aliases::StringT& str) -> Aliases::StringT {
-			std::for_each(
-				str.begin(), str.end(),
-				[](char& c) { c = std::tolower(c); }
-			);
-			return str;
-		}
-	)
-);
-print("YA");
-class_ptr->try_emplace("lower",
-	make_monadic_method<Aliases::StringT, Aliases::StringT>(
-		[](Aliases::StringT& str) -> Aliases::StringT {
-			std::for_each(
-				str.begin(), str.end(),
-				[](char& c) { c = std::toupper(c); }
-			);
-			return str;
-		}
-	)
-);
-
-class_ptr->try_emplace("length",
-	make_monadic_method<Aliases::StringT, size_t>(
-		[](Aliases::StringT& str) -> size_t {
-			return str.size();
-		}
-	)
-);
+ExternalObject o;
 
 
+REASSIGN(object)
+class_ptr->try_emplace("MRO", MKRRY_W(Classes::object)); // Array of weak references
+//print(*class_ptr, Classes::object.refcount());
+
+REASSIGN(string)
+ADD_BASIC_MRO(string)
+
+o = make_monadic_method<Aliases::StringT, Aliases::StringT>(
+	[](Aliases::StringT& str) -> Aliases::StringT {
+		std::for_each(
+			str.begin(), str.end(),
+			[](char& c) { c = std::tolower(c); }
+		);
+		return str;
+	}
+); EMPLACE("lower")
+
+o = make_monadic_method<Aliases::StringT, Aliases::StringT>(
+	[](Aliases::StringT& str) -> Aliases::StringT {
+		std::for_each(
+			str.begin(), str.end(),
+			[](char& c) { c = std::toupper(c); }
+		);
+		return str;
+	}
+); EMPLACE("upper")
+
+o = make_monadic_method<Aliases::StringT, size_t>(
+	[](Aliases::StringT& str) -> size_t {
+		return str.size();
+	}
+); EMPLACE("Length")
+
+REASSIGN(base_exception)
+ADD_BASIC_MRO(base_exception)
+
+#undef ADD_BASIC_MRO
+#undef EMPLACE
+#undef REASSIGN
 
 
 //print("class_ref:", Classes::object.get<Aliases::CustomT>());
 
-builtin_dicts[Types::string].try_emplace("Type",  Classes::string, true);
+builtin_dicts[Types::string].try_emplace("Type", Classes::string, true);
 // Emplaces weak reference; stops 2 references stopping eachother from being deleted
 
 #endif

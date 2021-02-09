@@ -8,6 +8,9 @@ template <typename T> struct AssociatedData;
 		using Tp = to;												\
 	};
 
+#define ADD_SELF_TYPE_CONVERSION(from_to) 							\
+	ADD_TYPE_CONVERSION(from_to, from_to)
+
 #define MAKE_TYPE_CONVERSION(from, to, enum_t, make_immovable)		\
 	ADD_TYPE_CONVERSION(from, to)									\
 	template <> struct AssociatedData<to> {							\
@@ -33,6 +36,7 @@ MAKE_TYPE_CONVERSION(std::nullptr_t, std::nullptr_t, Types::null, true)
 
 MAKE_TYPE_CONVERSION(int, Aliases::NumT, Types::number, true)
 ADD_TYPE_CONVERSION(size_t, Aliases::NumT)
+ADD_TYPE_CONVERSION(Aliases::NumT, Aliases::NumT)
 
 MAKE_TYPE_CONVERSION(Aliases::ArrayT, Aliases::ArrayT, Types::array, false)
 

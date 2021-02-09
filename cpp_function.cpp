@@ -31,8 +31,8 @@ CppFunction::CppFunction()
 }
 
 CppFunction::CppFunction(
-	const std::vector<ExternalObject>& optional_arguments, bool is_variadic,
-	FuncT func,
+	const std::vector<ExternalObject>& optional_arguments,
+	bool is_variadic, FuncT func,
 	const std::vector<Types>& required_types, Types variadic_type)
 	: optional_arguments(optional_arguments), is_variadic(is_variadic), function(func),
 		required_types(required_types), variadic_type(variadic_type),
@@ -86,6 +86,7 @@ CppFunction::~CppFunction() {
 }
 
 ExternalObject CppFunction::operator ()(std::vector<ExternalObject>& args) const {
+	//print("Calling with", args);
 	return function(this, args);
 }
 
@@ -154,7 +155,7 @@ bool CppFunction::assign_args(std::vector<ExternalObject>& inputs, TypesT&... ou
 					++index;
 				}()
 			), ...);
-			/*/
+			/*
 			((
 				[this, &index, &inputs]() { // Lambda in a lambda!
 					//cout << "INDEX " << index << " " << (MinArgCount + optional_arguments.size() - inputs.size() - 1) << "\n";
@@ -184,6 +185,7 @@ bool CppFunction::assign_args(std::vector<ExternalObject>& inputs, TypesT&... ou
 
 template <size_t MinArgCount, typename VariadicType, typename... TypesT>
 bool CppFunction::assign_variadic_args(std::vector<ExternalObject>& inputs, std::vector<VariadicType>* variadic_var, TypesT&... outputs) const {
+	//print("avr1");
 	*variadic_var = std::vector<VariadicType>(); // vector should be initialised regardless of arguments entered
 
 	//cout << "And Here\n";
@@ -198,10 +200,13 @@ bool CppFunction::assign_variadic_args(std::vector<ExternalObject>& inputs, std:
 
 template <typename VariadicType>
 void CppFunction::assign_variadic_args(size_t non_variadic_count, std::vector<ExternalObject>& inputs, std::vector<VariadicType>* variadic_var) const {
+	//print("avr2");
+	print(inputs);
 	//cout << "VC: " << inputs.size() - non_variadic_count << "\n";
 	for (size_t variadic_argument_traverser = non_variadic_count; variadic_argument_traverser < inputs.size(); ++variadic_argument_traverser) {
-		//cout << "VAT: " << variadic_argument_traverser << " " << *inputs[variadic_argument_traverser] << " is now ";
-		variadic_var->push_back(inputs[variadic_argument_traverser].cast<VariadicType>());
+		print(variadic_argument_traverser, inputs[variadic_argument_traverser]);
+		//cout << "VAT: " << variadic_argument_traverser << " " << inputs[variadic_argument_traverser] << " is now ";
+		variadic_var->push_back(inputs[variadic_argument_traverser].get<VariadicType>());
 		//variadic_var->push_back("test");
 		//cout << (variadic_var->back()) << "\n";
 	}

@@ -117,7 +117,7 @@ namespace UL {
 		using CppFunctionViewT		= FunctionView;
 		using ByteCodeFunctionT 	= ByteCodeFunction;
 		using PairT 				= std::pair<ExternalObject, ExternalObject>;
-		using ArrayT 				= DynamicArray<ExternalObject>;
+		using ArrayT 				= HashableArray<ExternalObject>;
 		using ListT 				= std::list<ExternalObject>;
 		using DictT 				= std::unordered_map<ExternalObject, ExternalObject>;
 		using BaseExceptionT		= NullType;

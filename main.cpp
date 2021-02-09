@@ -1,8 +1,7 @@
-#include "main_setup.h"
+#include "main_setup.cpp"
 
+using namespace UL;
 
-#define MKRRY UL::ExternalObject::make_array
-#define MKDCT UL::ExternalObject::make_dict
 int main() {
 	cout << std::boolalpha; // print true & false not 1 & 0
 	cout << SEP << SEP;
@@ -18,35 +17,19 @@ int main() {
 			"┃ Standard: " << __cplusplus << ", compilation started at: " << __TIME__ << " UTC ┃\n"
 			"┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛\n\n";
 	
-	{
+	try {
 		cout << SEP;
 
-		//#include "tests/objects.h"
-		print("Hai, Sensei!");
+		auto strs = make_eo_vec("Hai, Sensei!"s);
 
-		UL::ExternalObject str("sArCaSm!"s);
+		print(strs[0]);
 
-		/*
-		UL::ExternalObject attr = str.get_attr("length");
-		print("-----------");
-		print(attr);
-		*/
-
-		using namespace UL;
+		print(Classes::string.attrs_of(), Classes::string.get_attr("lower")(strs), Classes::string);
 		
-		ExternalObject func = make_monadic_method<Aliases::StringT, Aliases::StringT>(
-			[](Aliases::StringT& str) -> Aliases::StringT {
-				std::for_each(
-					str.begin(), str.end(),
-					[](char& c) { c = std::toupper(c); }
-				);
-				return str;
-			}
-		);
-
-		print("noice");
-				
 		cout << SEP "EXITED LOCAL SCOPE\n";
+	} catch (std::runtime_error& e) {
+		cout << "Program ended: " << e.what() << "\n";
+		return -1;
 	}
 
 	cout << SEP;

@@ -7,7 +7,10 @@ struct ExternalObject {
 	void *io_ptr;
 
 	template <typename... Ts>
-	static void* make_array(Ts...);
+	static void* make_array(Ts&&...);
+
+	template <typename... Ts>
+	static void* make_array_w(Ts&&...);
 	
 	template <typename K, typename V>
 	static void* make_pair(K, V);
@@ -30,8 +33,8 @@ struct ExternalObject {
 
 	ExternalObject(); // Default constructor
 
-	ExternalObject(void*, bool=false); // Construct from internal object
-	ExternalObject& operator =(void*);
+	ExternalObject(void*, bool=false); // Construct from InternalObject
+	ExternalObject& operator =(void*); // Assign from InternalObject
 
 	/*
 	#ifdef DO_CACHE_DECL
@@ -46,13 +49,13 @@ struct ExternalObject {
 	ExternalObject& operator =(ExternalObject&&) noexcept; // Move assignment
 
 	ExternalObject(const ExternalObject&, bool=false); // Copy constructor
-	ExternalObject& operator =(const ExternalObject&); // Move assignment
+	ExternalObject& operator =(const ExternalObject&); // Copy assignment
 
 	ExternalObject(ExternalObject&, bool=false);
 	ExternalObject& operator =(ExternalObject&);
 
-	template <typename T> ExternalObject(T&&, bool=false);
-	template <typename T> ExternalObject& operator =(T&&);
+	template <typename T> ExternalObject(T&&, bool=false); // Rvalue constructor
+	template <typename T> ExternalObject& operator =(T&&); // Rvalue assignment
 
 	~ExternalObject();
 
@@ -72,7 +75,8 @@ struct ExternalObject {
 	Aliases::CustomT& attrs_of() const;
 	std::optional<ExternalObject> simple_get_attr(const char* name);
 	//std::optional<ExternalObject> class_get_attr;
-	ExternalObject get_attr(const char* name);
+	std::optional<ExternalObject> self_get_attr(const char* name); // Just self, not type
+	ExternalObject get_attr(const char* name); // self & type (procedure is similar for both)
 	// get_attr isn't necessarily const!
 
 	/*

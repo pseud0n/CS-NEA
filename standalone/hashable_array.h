@@ -1,7 +1,7 @@
 //07873 856679
 
-#ifndef DYNAMIC_ARRAY_H
-#define DYNAMIC_ARRAY_H
+#ifndef HASHABLE_ARRAY_H
+#define HASHABLE_ARRAY_H
 
 #include <memory>
 #include <iostream>
@@ -12,7 +12,7 @@
 using std::cout;
 
 template <typename T>
-class DynamicArray {
+class HashableArray {
 private:
 	static T* make_buffer(size_t count) {
 		return reinterpret_cast<T*>(malloc(count * sizeof(T)));
@@ -59,21 +59,21 @@ private:
 public:
 	static inline size_t capacity_init = 4;
 
-	DynamicArray()
-		: _buffer(0),
+	HashableArray()
+		: _buffer(nullptr),
 		  _size(0),
 		  _capacity(0),
 		  _cached_hash(get_hash()) {
 		_valid_hash = true;
 	}
 
-	DynamicArray(size_t size)
+	HashableArray(size_t size)
 		: _buffer(make_buffer(size)),
 		  _size(size),
 		  _capacity(size),
 		  _cached_hash(get_hash()) { }
 
-	DynamicArray(std::initializer_list<T> il)
+	HashableArray(std::initializer_list<T> il)
 		: _buffer(make_buffer(std::distance(il.begin(), il.end()))), _size(0), _capacity(std::distance(il.begin(), il.end())) {
 		//cout << "HERE\n";
 		for (auto& el: il) {
@@ -82,7 +82,7 @@ public:
 	}
 
 	template <typename U>
-	DynamicArray(std::initializer_list<U> il)
+	HashableArray(std::initializer_list<U> il)
 		: _buffer(make_buffer(std::distance(il.begin(), il.end()))),
 		  _size(0),
 		  _capacity(std::distance(il.begin(), il.end())) {
@@ -92,7 +92,7 @@ public:
 		}
 	}
 
-	DynamicArray(const DynamicArray<T>& array)
+	HashableArray(const HashableArray<T>& array)
 		: _buffer(make_buffer(array._size)),
 		  _size(array._size),
 		  _capacity(_size),
@@ -105,16 +105,16 @@ public:
 		}
 	}
 
-	DynamicArray(DynamicArray<T>&& array) noexcept
-		: _buffer(std::exchange(array._buffer, reinterpret_cast<T*>(0))),
+	HashableArray(HashableArray<T>&& array) noexcept
+		: _buffer(std::exchange(array._buffer, nullptr)),
 		  _size(array._size), _capacity(_size),
 		  _valid_hash(array._valid_hash) {
 		if (_valid_hash)
 			_cached_hash = array._cached_hash;
 	}
 
-	DynamicArray& operator =(DynamicArray<T>&& array) noexcept {
-		_buffer = std::exchange(array._buffer, reinterpret_cast<T*>(0));
+	HashableArray& operator =(HashableArray<T>&& array) noexcept {
+		_buffer = std::exchange(array._buffer, nullptr);
 		_capacity = _size = array._size;
 		_valid_hash = array._valid_hash;
 		if (_valid_hash)
@@ -122,7 +122,7 @@ public:
 		return *this;
 	}
 
-	~DynamicArray() {
+	~HashableArray() {
 		if(_buffer) {
 			clear(); // leaves capacity unchanged
 			//::operator delete((void*)_buffer, _capacity * sizeof(T));
@@ -141,7 +141,7 @@ public:
 		return _buffer[index];
 	}
 
-	bool operator ==(const DynamicArray<T>& other) const {
+	bool operator ==(const HashableArray<T>& other) const {
 		if (_size != other._size)
 			return false;
 		for (size_t i = 0; i < _size; ++i) {
@@ -156,7 +156,7 @@ public:
 	}
 
 	size_t last() const {
-		return _buffer[_size - 1];
+		return _size - 1;
 	}
 
 	size_t capacity() const {
@@ -239,6 +239,13 @@ public:
 		// _buffer[_size++] = T(std::forward<Ts>(args)...); requires move then delete
 	}
 
+	template <typename... Ts>
+	void replace(size_t index, Ts&&... args) {
+		invalidate_hash();
+		_buffer[index].~T();
+		new (_buffer + index) T(std::forward<Ts>(args)...);
+	}
+
 	void pop_back() {
 		invalidate_hash();
 		_buffer[_size - 1].~T();
@@ -255,11 +262,15 @@ public:
 		[a,b,_,d,e,f,g]
 		Delete element at index
 		Move each element after backwards 1
+		[a,b,d,e,f,g,_]
+		Destruct last object (though it should not own anything)
+		Reduce size by 1
+		[a,b,d,e,f,g]
 		*/
 		_buffer[index].~T(); // call destructor
 		for (size_t i = index; i < _size; ++i)
 			_buffer[i] = std::move(_buffer[i + 1]);
-		--_size;
+		_buffer[--_size].~T();
 	}
 
 	void clear() {
@@ -272,7 +283,7 @@ public:
 	//	if (count > _capacity) 
 	}
 
-	friend std::ostream& operator <<(std::ostream& stream, const DynamicArray<T>& da) {
+	friend std::ostream& operator <<(std::ostream& stream, const HashableArray<T>& da) {
 		stream << "[";
 		for (size_t i = 0; i < da._size; ++i) {
 			if (i != 0) stream << ", ";
@@ -346,8 +357,8 @@ public:
 
 namespace std {
   template <typename T>
-  struct hash<DynamicArray<T>> {
-    std::size_t operator()(const DynamicArray<T>& array) const {
+  struct hash<HashableArray<T>> {
+    std::size_t operator()(const HashableArray<T>& array) const {
       return array.get_hash();
     }
   };

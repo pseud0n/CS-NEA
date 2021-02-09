@@ -45,10 +45,10 @@ https://www.programiz.com/cpp-programming/online-compiler/
 // Setting up namespaces & aliases
 
 using std::cout;
+
 using std::cerr;
 namespace bmp = boost::multiprecision;
 // for pow & cpp_int
-
 using namespace std::string_literals;
 // "dfdsgfsd"s ≡ std::string("dfdsgfsd") (for a literal only)
 // chrono_literals definition for numerical only, not string (phew!)
@@ -57,11 +57,16 @@ using namespace std::string_literals;
 #include "standalone/debug_object.h"
 #include "standalone/decl_display.h"
 #include "standalone/plumber.h"
-#include "standalone/dynamic_array.h"
+#include "standalone/hashable_array.h"
 
 Plumber plumber;
 
 #define TEST_REPR(str) cout << "--------TEST: " << str << "\n\n"
+
+#define MKRRY	UL::ExternalObject::make_array
+#define MKRRY_W	UL::ExternalObject::make_array_w
+#define MKDCT	UL::ExternalObject::make_dict
+#define MKPR	UL::ExternalObject::make_pair
 
 #define MIN_CACHED_INTEGER_VALUE 0
 #define MAX_CACHED_INTEGER_VALUE 10
@@ -75,6 +80,7 @@ namespace UL {
 	#include "objects/external_object.h"
 	#include "cpp_function.h"
 	#include "function_view.h"
+	#include "code_block.cpp"
 	#include "objects/conversions.h"
 	#include "cache/decl.h"
 	#include "exceptions.h"
@@ -111,6 +117,8 @@ namespace UL {
 		default:									\
 			break;									\
 	}
+#define CASE(enum_type, type) \
+	case enum_type: SWITCH_MACRO(type); break;
 
 #define GENERATE_SWITCH(enum_val) 							\
 	switch (enum_val) {									\
@@ -137,9 +145,12 @@ namespace UL {
 		case Types::array:							\
 			SWITCH_MACRO(Aliases::ArrayT);		\
 			break;	\
+		CASE(Types::base_exception, Aliases::BaseExceptionT) \
 		default:									\
 			break;									\
 	}
+#undef CASE
+
 
 namespace UL {
 	namespace Tracker {
@@ -195,10 +206,11 @@ namespace UL {
 			#endif
 		}
 	} // namespace Tracker
+	#define UL_LMBD [&](UL::CppFunction const* argument_data, std::vector<UL::ExternalObject>& arguments) -> UL::ExternalObject
+	//Macro for defining the lambda for a CppFunction as `DY_LMBD { stuff }`
+	using LambdaT = std::function<ExternalObject(UL::CppFunction const*, std::vector<UL::ExternalObject>&)>;
 } // namespace UL
 
-#define UL_LMBD [&](UL::CppFunction const* argument_data, std::vector<UL::ExternalObject>& arguments) -> UL::ExternalObject
-//Macro for defining the lambda for a CppFunction as `DY_LMBD { stuff }`
 
 namespace Utils {
 	/* Commented is a 'possible implementation' of std::apply from <utility> from https://en.cppreference.com/w/cpp/utility/apply
@@ -278,6 +290,19 @@ namespace UL {
 		bool can_convert(std::string&, Types) { return true; }
 	}
 
+	template <typename... Ts>
+	std::vector<ExternalObject> make_eo_vec(Ts&&... elements) {
+		// I think that this is the best I can do here
+		std::vector<ExternalObject> temp(sizeof...(elements));
+		// Default-construct
+		size_t i = 0;
+		(( temp[i++] = ExternalObject::emplace<Ts>(std::forward<Ts>(elements)) ), ...);
+		// Construct from lvalue or rvalue references and emplace
+		// Using rvalue references: Constructs InternalObject then moves
+		return temp;
+		// Deletes null ExternalObjects left over from std::move (if && not &)
+	}
+
 	struct ByteCodeFunction {
 		//Functor class which represents a function written in bytecode
 		size_t start_line, code_length;
@@ -313,14 +338,20 @@ namespace UL {
 																					  <= Object (Class) < ...
 
 		*/
+	#include "bytecode/instructions.cpp"
 
-	//#include "lookup.h"
+	Bytecode::ScopeStack scopes;
+	void throw_error(ExternalObject object) {
+		scopes.throw_error(object); // by reference
+	}
 
 	#include "objects/external_object.cpp"
 	#include "objects/internal_object.cpp"
 
 	#include "cpp_function.cpp"
 	#include "function_view.cpp"
+
+	#include "bytecode/instructions.cpp"
 
 	#define ADD_OBJECT(name) ExternalObject name = Aliases::CustomT();
 
@@ -348,6 +379,14 @@ namespace UL {
 		//return temp;
 	}
 
+	Aliases::CustomT *class_ptr;
+/*
+	void emplace_map(const char* name, const ExternalObject& obj) {
+		print("In emplace_map");
+		auto external_object = std::forward<ExternalObject>(obj);
+		class_ptr->emplace(name, external_object);
+	}
+*/
 } // UL
 
 #endif

@@ -1,18 +1,20 @@
 #ifndef EXTERNAL_OBJECT_CPP
 #define EXTERNAL_OBJECT_CPP
 
-template <typename... Ts>
-void* ExternalObject::make_array(Ts... construct_from) {
-	auto temp = new InternalObject<Aliases::ArrayT>(Aliases::ArrayT(sizeof...(Ts)));
-	size_t i = 0;
-	((
-		[&](){
-			(*temp->stored_value)[i++] = construct_from;
-		}()
-	), ...);
-	return reinterpret_cast<void*>(temp);
-	// Controlled by ExternalObject so will get deleted correctly
-}
+#define MAKE_MAKE_ARRAY(name, weak)															\
+	template <typename... Ts>																\
+	void* ExternalObject::name(Ts&&... construct_from) {									\
+		auto temp = new InternalObject<Aliases::ArrayT>(Aliases::ArrayT(sizeof...(Ts)));	\
+		size_t i = 0;																		\
+		((																					\
+			temp->stored_value->replace(i++, construct_from, weak)							\
+		), ...);																			\
+		return reinterpret_cast<void*>(temp);												\
+		/* Controlled by ExternalObject so will get deleted correctly */					\
+	}
+
+MAKE_MAKE_ARRAY(make_array, false)
+MAKE_MAKE_ARRAY(make_array_w, true)
 
 template <typename K, typename V>
 void* ExternalObject::make_pair(K key, V value) {
@@ -53,7 +55,7 @@ ExternalObject ExternalObject::blank_object() {
 
 template <typename T>
 void* ExternalObject::specific_object() {
-	return InternalObject<T>();
+	return reinterpret_cast<void*>(new InternalObject<T>());
 }
 
 template <typename T, typename... Ts>
@@ -121,7 +123,7 @@ ExternalObject& ExternalObject::operator =(const ExternalObject& copy_from) {
 }
 
 ExternalObject::ExternalObject(ExternalObject& copy_from, bool make_weak) {
-	print("Semi-copying from", copy_from);
+	print("Semi-copying from", copy_from, "is_weak:", copy_from.is_weak);
 	is_weak = copy_from.is_weak || make_weak;
 	io_ptr = copy_from.io_ptr;
 	if (io_ptr && !is_weak) {// Also increments references for cached objects
@@ -142,14 +144,14 @@ ExternalObject& ExternalObject::operator =(ExternalObject& copy_from) {
 
 ExternalObject::ExternalObject(ExternalObject&& move_from) noexcept {
 	print("Moving from", move_from);
-	io_ptr = std::exchange(move_from.io_ptr, (void*)0);
+	io_ptr = std::exchange(move_from.io_ptr, nullptr);
 	is_weak = move_from.is_weak;
 	// The old object won't be deleted since it has a 0 pointer
 }
 
 ExternalObject& ExternalObject::operator =(ExternalObject&& move_from) noexcept {
 	print("Move-assigning from", move_from);
-	io_ptr = std::exchange(move_from.io_ptr, (void*)0);
+	io_ptr = std::exchange(move_from.io_ptr, nullptr);
 	is_weak = move_from.is_weak;
 	// The old object won't be deleted since it has a 0 pointer
 	return *this;
@@ -158,9 +160,9 @@ ExternalObject& ExternalObject::operator =(ExternalObject&& move_from) noexcept 
 #define DEL_IO_PTR(T) delete reinterpret_cast<UL::InternalObject<Aliases::T>*>(io_ptr); break;
 ExternalObject::~ExternalObject() {
 	/*
-	#define SWITCH_MACRO(T) delete (UL::InternalObject<T>*)io_ptr
-	GENERATE_SWITCH(type())
-	#undef SWITCH_MACRO
+	#define SWITCH_MACR0
+	GENERATE_SWITCH(typ0
+	#undef SWITCH_MACRO0
 	*/
 
 	/*
@@ -188,13 +190,11 @@ ExternalObject::~ExternalObject() {
 			case Types::number:
 				DEL_IO_PTR(NumT);
 				{
-					/*
 					#ifdef DO_CACHE_DECL
 					auto num_reference = get<Aliases::NumT>();
 					if (num_reference > Cache::min && num_reference <= Cache::max)
 						break;
 					#endif // If no caching, always deletes; otherwise breaks if cached
-					*/
 					// If weak/cached, already caught and returned
 				}
 			case Types::boolean:
@@ -219,6 +219,8 @@ ExternalObject::~ExternalObject() {
 				DEL_IO_PTR(ArrayT)
 			case Types::dictionary:
 				DEL_IO_PTR(DictT)
+			case Types::base_exception:
+				DEL_IO_PTR(BaseExceptionT)
 			case Types::custom:
 				DEL_IO_PTR(CustomT)
 			default:
@@ -267,9 +269,12 @@ ExternalObject ExternalObject::operator ()() {
 	return (*this)(CppFunction::empty_eobject_vec);
 }
 
+
 template <typename T>
 T& ExternalObject::get() const {
-	return *((InternalObject<T>*)io_ptr)->stored_value;
+	if constexpr (std::is_same_v<T, ExternalObject>)
+		return *this;
+	return *reinterpret_cast<InternalObject<T>*>(io_ptr)->stored_value;
 }
 
 Types ExternalObject::type() const {
@@ -378,15 +383,55 @@ std::optional<ExternalObject> ExternalObject::simple_get_attr(const char* name) 
 		return std::nullopt;
 	return attrs_it->second;
 }
+
+std::optional<ExternalObject>
+ExternalObject::object_get_attr(const char* name) {
+	std::optional<ExternalObject> result = simple_get_attr(name);
+	if (result) {
+		return result;
+	}
+	if ()
+}
 */
 
 
+std::optional<ExternalObject> ExternalObject::self_get_attr(const char* name) {
+	Aliases::CustomT&		   attrs	 = attrs_of();
+	Aliases::CustomT::iterator attrs_it  = attrs.find("MRO"),
+							   attrs_end = attrs.end();
+	/*
+    Procedure:
+    Check for MRO
+        Look in each object in MRO for attr
+    Otherwise
+        Look in object
+    Look in type's MRO (guarantee that type has MRO)
+    */
 
-ExternalObject ExternalObject::get_attr(const char* name) {
-	Aliases::CustomT&		   attrs   = attrs_of();
-	Aliases::CustomT::iterator attr_it = attrs.find(name);
-	//print("-Looking for attr", name);
-	//print("-Lookin in", attrs);
+	if (attrs_it == attrs_end) {
+		// No method resolution order; look for name
+		attrs_it = attrs.find(name);
+		if (attrs_it == attrs_end) {
+			return std::nullopt;
+		} else {
+			return attrs_it->second;
+		}
+	} else {
+		// Found MRO, look through it
+		// For each item, look for name
+		Aliases::CustomT::iterator mro_attrs_it; // attrs_it required in for loop
+		for (ExternalObject& super : attrs_it->second.get<Aliases::ArrayT>()) {
+			attrs = super.attrs_of();
+			mro_attrs_it = attrs.find(name);
+			if (mro_attrs_it != attrs.end()) {
+				return mro_attrs_it->second;
+			}
+		}
+		// Has MRO but none of the objects contain the attribute being looked for
+		return std::nullopt;
+	}
+
+	/*
 	if (attr_it == attrs.end()) {
 		// Now look in type
 		attrs = attrs.at("Type").get<Aliases::CustomT>();
@@ -412,7 +457,24 @@ ExternalObject ExternalObject::get_attr(const char* name) {
 	}
 	Exc::Lookup("Attr not found");
 	return nullptr;
+	*/
 }
 
+ExternalObject ExternalObject::get_attr(const char* name) {
+	std::optional<ExternalObject> result = self_get_attr(name);
+	if (result) {
+		return *result;
+	}
+	result = attrs_of().at("Type").get_attr(name);
+	if (result) {
+		if (result->type() == Types::cpp_function) {
+			return FunctionView(result->get<Aliases::CppFunctionT>(), *this);
+		}
+		return *result;
+	}
+	throw_error(0);
+	return nullptr;
+
+}
 
 #endif
