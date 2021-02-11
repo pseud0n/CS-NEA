@@ -16,6 +16,8 @@
 MAKE_MAKE_ARRAY(make_array, false)
 MAKE_MAKE_ARRAY(make_array_w, true)
 
+#undef MAKE_MAKE_ARRAY
+
 template <typename K, typename V>
 void* ExternalObject::make_pair(K key, V value) {
 	auto temp = new InternalObject<Aliases::PairT>();
@@ -53,9 +55,9 @@ ExternalObject ExternalObject::blank_object() {
 }
 
 
-template <typename T>
-void* ExternalObject::specific_object() {
-	return reinterpret_cast<void*>(new InternalObject<T>());
+template <typename T, typename... Ts>
+void* ExternalObject::specific_object(Ts&&... args) {
+	return reinterpret_cast<void*>(new InternalObject<T>(std::forward<Ts>(args)...));
 }
 
 template <typename T, typename... Ts>
@@ -274,7 +276,8 @@ template <typename T>
 T& ExternalObject::get() const {
 	if constexpr (std::is_same_v<T, ExternalObject>)
 		return *this;
-	return *reinterpret_cast<InternalObject<T>*>(io_ptr)->stored_value;
+	else
+		return *reinterpret_cast<InternalObject<T>*>(io_ptr)->stored_value;
 }
 
 Types ExternalObject::type() const {
@@ -430,45 +433,22 @@ std::optional<ExternalObject> ExternalObject::self_get_attr(const char* name) {
 		// Has MRO but none of the objects contain the attribute being looked for
 		return std::nullopt;
 	}
-
-	/*
-	if (attr_it == attrs.end()) {
-		// Now look in type
-		attrs = attrs.at("Type").get<Aliases::CustomT>();
-		Aliases::CustomT::iterator type_attr_it = attrs.find(name);
-		//print("-Look in class", attrs);
-		if (type_attr_it == attrs.end()) {
-			//print("-Not found!");
-			Exc::Lookup("Attr not found");
-			return nullptr;
-		} else {
-			//print("-Found!");
-			if (type_attr_it->second.type() == Types::cpp_function) {
-				print("-It was a function!");
-				auto fv = FunctionView(type_attr_it->second.get<Aliases::CppFunctionT>(), *this);
-				return fv;
-			}
-			return type_attr_it->second;
-		}
-	} else {
-		// Found attribute
-		//print("-Found in object");
-		return attr_it->second;
-	}
-	Exc::Lookup("Attr not found");
-	return nullptr;
-	*/
 }
 
 ExternalObject ExternalObject::get_attr(const char* name) {
+	print("Getting attr");
 	std::optional<ExternalObject> result = self_get_attr(name);
 	if (result) {
 		return *result;
 	}
-	result = attrs_of().at("Type").get_attr(name);
+	Aliases::CustomT& attrs = attrs_of();
+	result = attrs.at("Type").self_get_attr(name);
+	// Will always have a type
+	// 
 	if (result) {
+		print("Looking in type")
 		if (result->type() == Types::cpp_function) {
-			return FunctionView(result->get<Aliases::CppFunctionT>(), *this);
+			return specific_object<FunctionView>(*result, *this); // Emplace into InternalObject heap ptr
 		}
 		return *result;
 	}

@@ -10,9 +10,7 @@ public:
 
 	FunctionView();
 
-	FunctionView(
-		ExternalObject viewing,
-		ExternalObject applied_value);
+	FunctionView(ExternalObject&, ExternalObject&);
 	
 	~FunctionView();
 

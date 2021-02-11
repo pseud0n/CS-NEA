@@ -8,7 +8,8 @@ public:
 	static inline std::vector<ExternalObject> empty_eobject_vec;
 	static inline std::vector<Types> 			empty_type_vec;
 
-	static std::string repr_arg_type_error(const CppFunction& cpp_function, std::vector<ExternalObject>& arguments);
+	//static std::string repr_arg_type_error(const CppFunction& cpp_function, std::vector<ExternalObject>& arguments);
+	
 	/*
 	Functor class which represents a function written in C++
 	A CppFunction accepts any number of arguments and input variables of C++ types

@@ -24,7 +24,8 @@ int main() {
 
 		print(strs[0]);
 
-		print(Classes::string.attrs_of(), Classes::string.get_attr("lower")(strs), Classes::string);
+		print(Classes::object.attrs_of(), strs[0].attrs_of(), Classes::string);
+		print("Okay", Classes::string(), "Cool");
 		
 		cout << SEP "EXITED LOCAL SCOPE\n";
 	} catch (std::runtime_error& e) {

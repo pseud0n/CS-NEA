@@ -88,6 +88,49 @@ REASSIGN(object)
 class_ptr->try_emplace("MRO", MKRRY_W(Classes::object)); // Array of weak references
 //print(*class_ptr, Classes::object.refcount());
 
+o = ExternalObject::emplace<Aliases::CppFunctionT>(
+	CppFunction::empty_eobject_vec, true, UL_LMBD {
+		ExternalObject cls;
+		std::vector<ExternalObject> ctor_args;
+		print("In func", arguments, cls);
+		if (!argument_data->assign_variadic_args<1>(arguments, &ctor_args, cls)) {
+			print("!!");
+			return nullptr;
+		}
+		print("args:", cls, ctor_args);
+		switch(cls.type()) {
+			case Types::string:
+				print("In string switch!");
+				switch (ctor_args.size()) {
+					case 0:
+						return ""s;
+					case 1:
+					{
+						std::ostringstream osstream;
+						osstream << ctor_args[0];
+						return osstream.str();
+					}
+					case 2:
+						if (ctor_args[0].type() == Types::string && ctor_args[1].type() == Types::number) {
+							std::ostringstream osstream;
+							Aliases::StringT& str = ctor_args[0].get<Aliases::StringT>();
+							Aliases::NumT&	count = ctor_args[1].get<Aliases::NumT>();
+							for (size_t i = 0; i < count; ++i)
+								osstream << str;
+							return osstream.str();
+						}
+						throw_error(0);
+						return nullptr;
+				}
+				default:
+					throw_error(0);
+		}
+		return nullptr;
+	}, std::vector<Types>{Types::any}, Types::any
+);
+
+EMPLACE("Call")
+
 REASSIGN(string)
 ADD_BASIC_MRO(string)
 

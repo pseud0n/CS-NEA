@@ -30,7 +30,6 @@ std::ostream& operator <<(std::ostream& stream, std::nullptr_t) {
 }
 
 ITER_OVERLOAD(std::vector)
-//ITER_OVERLOAD(const std::vector)
 ITER_OVERLOAD(std::unordered_set)
 ITER_OVERLOAD(std::unordered_map)
 ITER_OVERLOAD(std::initializer_list)
@@ -59,20 +58,7 @@ void print() {
 }
 
 
-std::string repr_arg_count_error(size_t min, size_t optional, bool is_variadic, size_t entered) {
-	std::stringstream error;
-	if (entered < min || (!is_variadic && entered > min + optional)) {
-		error << "Entered " << entered << " arguments but function requires ";
-		if (is_variadic) error << " at least " << min << " arguments";
-		else if (optional == 0) error << "exactly " << min << " argument" << (min == 1 ? "":"s");
-		else error << min << " to " << optional + min;
-	}
-	return error.str();
-}
-
-
 namespace UL {
-
 	#define TP_CASE(type) case Types::type: return stream << #type;
 
 	OSTREAM_HEADER(Types, type) {
@@ -98,6 +84,49 @@ namespace UL {
 
 	#undef TP_CASE
 	
+	std::string no_matching_ctor(Types type_to_construct, std::vector<Types>& entered_types) {
+		std::stringstream stream;
+		stream << "Entered types " << "entered_types" << ", no valid constructor found to construct " << type_to_construct;
+		return stream.str();
+	}
+	std::string repr_arg_count_error(size_t min, size_t optional, bool is_variadic, size_t entered) {
+		std::stringstream error;
+		if (entered < min || (!is_variadic && entered > min + optional)) {
+			error << "Entered " << entered << " arguments but function requires ";
+			if (is_variadic) error << " at least " << min << " arguments";
+			else if (optional == 0) error << "exactly " << min << " argument" << (min == 1 ? "":"s");
+			else error << min << " to " << optional + min;
+		}
+		return error.str();
+	}
+
+	std::string repr_arg_type_error(const CppFunction& cpp_function, std::vector<ExternalObject>& arguments) {
+		std::stringstream error;
+		//print("here");
+		if (cpp_function.has_type_requirement) {
+			/*// For extra debug:
+			std::vector<Types> v(arguments.size());
+			std::transform(
+				arguments.begin(), arguments.end(), v.begin(),
+				[](const ExternalObject& o) -> Types { return o.type(); }
+			);
+			print("has type requirement", arguments, v, cpp_function.required_types, cpp_function.required_types.size());
+			*/
+			for (size_t i = 0; i < cpp_function.required_types.size(); ++i) {
+				if (cpp_function.required_types[i] != Types::any && cpp_function.required_types[i] != arguments[i].type()) {
+					//print("Error!");
+					error
+						<< "For argument " << i
+						<< ": acceptable type: " << cpp_function.required_types[i] 
+						<< ", got type: " << arguments[i].type();
+					break;
+				}
+			}
+		}
+		//print("Got to end");
+		return error.str();
+	}
+	
 	OSTREAM_HEADER(const ExternalObject&, eobject) {
 		if (!eobject.io_ptr)
 			return stream  << "Null";
@@ -111,9 +140,9 @@ namespace UL {
 			case Types::string:
 				return stream << '\'' << eobject.get<Aliases::StringT>() << '\'';
 			case Types::cpp_function:
-				return stream << "<C++ Function>";
+				return stream << "<func@" << eobject.io_ptr << ">";
 			case Types::cpp_function_view:
-				return stream << "<C++ Function View>";
+				return stream << "<func view@" << eobject.io_ptr << ">";
 			case Types::bytecode_function:
 				return stream << "<Bytecode Function>";
 			case Types::pair:

@@ -238,25 +238,25 @@ namespace Utils {
 	// Adapted from 'possible implementation' from the C++ reference which is why this code is so much better than the rest of it :)
 
 	namespace {
-		template <size_t N, typename Lambda1Type, typename Lambda2Type, typename TupleType, std::size_t... FirstPartIndices, std::size_t... SecondPartIndices>
-		constexpr void apply_impl(Lambda1Type&& lambda1, Lambda2Type&& lambda2, TupleType&& tuple, std::index_sequence<FirstPartIndices...>, std::index_sequence<SecondPartIndices...>) {
-			std::invoke(std::forward<Lambda1Type>(lambda1), std::get<FirstPartIndices>(std::forward<TupleType>(tuple))...);
+		template <size_t N, typename Lambda1T, typename Lambda2T, typename TupleT, std::size_t... FirstPartIndices, std::size_t... SecondPartIndices>
+		constexpr void apply_impl(Lambda1T&& lambda1, Lambda2T&& lambda2, TupleT&& tuple, std::index_sequence<FirstPartIndices...>, std::index_sequence<SecondPartIndices...>) {
+			std::invoke(std::forward<Lambda1T>(lambda1), std::get<FirstPartIndices>(std::forward<TupleT>(tuple))...);
 			// Invoke first function with elements from the tuple with indexes in the first index_sequence
-			std::invoke(std::forward<Lambda2Type>(lambda2), std::get<SecondPartIndices + N>(std::forward<TupleType>(tuple))...);
+			std::invoke(std::forward<Lambda2T>(lambda2), std::get<SecondPartIndices + N>(std::forward<TupleT>(tuple))...);
 			// Invoke second function  with elements from the tuple with indexes in the second index_sequence
 		}
 	}
 
-	template <size_t N, typename Lambda1Type, typename Lambda2Type, typename TupleType>
+	template <size_t N, typename Lambda1T, typename Lambda2T, typename TupleT>
 	// Truth be told, I don't know the actual function signatures but the compiler obviously does :)
-	constexpr void inplace_tuple_slice_apply(Lambda1Type&& lambda1, Lambda2Type&& lambda2, TupleType&& tuple) {
-		apply_impl<N, Lambda1Type, Lambda2Type, TupleType>(
-			std::forward<Lambda1Type>(lambda1),
-			std::forward<Lambda2Type>(lambda2),
+	constexpr void inplace_tuple_slice_apply(Lambda1T&& lambda1, Lambda2T&& lambda2, TupleT&& tuple) {
+		apply_impl<N, Lambda1T, Lambda2T, TupleT>(
+			std::forward<Lambda1T>(lambda1),
+			std::forward<Lambda2T>(lambda2),
 			// template<std::size_t... Ints> using index_sequence = std::integer_sequence<std::size_t, Ints...>;
-			std::forward<TupleType>(tuple), // Perfect forwarding of tuple to account for lvalue reference or rvalue reference for tuple
+			std::forward<TupleT>(tuple), // Perfect forwarding of tuple to account for lvalue reference or rvalue reference for tuple
 			std::make_index_sequence<N>{ }, // Compile-time size_t sequence up to `N`
-			std::make_index_sequence<std::tuple_size_v<std::remove_reference_t<TupleType> > - N>{ }); // Compile-time size_t sequence up to tuple length - `N`
+			std::make_index_sequence<std::tuple_size_v<std::remove_reference_t<TupleT> > - N>{ }); // Compile-time size_t sequence up to tuple length - `N`
 	}
 
 }

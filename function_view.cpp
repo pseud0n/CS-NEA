@@ -2,10 +2,9 @@ FunctionView::FunctionView() {
 }
 
 FunctionView::FunctionView(
-	ExternalObject viewing,
-	ExternalObject applied_value)
+	ExternalObject& viewing,
+	ExternalObject& applied_value)
 	: viewing(viewing), applied_value(applied_value) {
-	cout << "MADE VIEW!\n";
 }
 
 ExternalObject FunctionView::operator ()(std::vector<ExternalObject>& args) {

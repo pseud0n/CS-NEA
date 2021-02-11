@@ -26,10 +26,11 @@ struct ExternalObject {
 	
 	static ExternalObject blank_object();
 
-	template <typename T>
-	static void* specific_object();
+	template <typename T, typename... Ts>
+	static void* specific_object(Ts&&...);
 	
-	template <typename T, typename... Ts> static ExternalObject emplace(Ts&&...);
+	template <typename T, typename... Ts>
+	static ExternalObject emplace(Ts&&...);
 
 	ExternalObject(); // Default constructor
 

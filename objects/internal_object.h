@@ -21,7 +21,7 @@ public:
 	// Alternatively, a pointer to a dictionary
 	
 	InternalObject();
-	InternalObject(StoredT);
+	template<typename... Ts> InternalObject(Ts&&...);
 	~InternalObject();
 
 	template <typename... CtorTs>

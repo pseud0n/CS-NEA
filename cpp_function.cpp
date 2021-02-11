@@ -1,30 +1,7 @@
 #ifndef CPP_FUNCTION_CPP
 #define CPP_FUNCTION_CPP
 
-std::string CppFunction::repr_arg_type_error(const CppFunction& cpp_function, std::vector<ExternalObject>& arguments) {
-	std::stringstream error;
-	//print("here");
-	if (cpp_function.has_type_requirement) {
-		std::vector<Types> v(arguments.size());
-		std::transform(
-			arguments.begin(), arguments.end(), v.begin(),
-			[](const ExternalObject& o) -> Types { return o.type(); }
-		);
-		//print("has type requirement", arguments, v, cpp_function.required_types, cpp_function.required_types.size());
-		for (size_t i = 0; i < cpp_function.required_types.size(); ++i) {
-			if (cpp_function.required_types[i] != Types::any && cpp_function.required_types[i] != arguments[i].type()) {
-				//print("Error!");
-				error
-					<< "For argument " << i
-					<< ": acceptable type: " << cpp_function.required_types[i] 
-					<< ", got type: " << arguments[i].type();
-				break;
-			}
-		}
-	}
-	//print("Got to end");
-	return error.str();
-}
+
 
 CppFunction::CppFunction()
 	: optional_arguments(empty_eobject_vec), required_types(empty_type_vec) {
@@ -178,7 +155,6 @@ bool CppFunction::assign_args(std::vector<ExternalObject>& inputs, TypesT&... ou
 	); // Note that the tuple container is able to store references
 
 	#undef CURRENT_TYPE
-	//cout << "Here!\n";
 
 	return true;
 }
@@ -191,11 +167,13 @@ bool CppFunction::assign_variadic_args(std::vector<ExternalObject>& inputs, std:
 	//cout << "And Here\n";
 	//cout << is_variadic << " " << inputs.size() << " " << MinArgCount << " " << optional_arguments.size();
 	if (inputs.size() > MinArgCount + optional_arguments.size())
+		// At least one variadic argument
 		assign_variadic_args<VariadicType>(MinArgCount + optional_arguments.size(), inputs, variadic_var);
-	else
-		return false;
+	//else
+		
 
 	return assign_args<MinArgCount>(inputs, outputs...);
+	// Standard assigment
 }
 
 template <typename VariadicType>
@@ -206,12 +184,15 @@ void CppFunction::assign_variadic_args(size_t non_variadic_count, std::vector<Ex
 	for (size_t variadic_argument_traverser = non_variadic_count; variadic_argument_traverser < inputs.size(); ++variadic_argument_traverser) {
 		print(variadic_argument_traverser, inputs[variadic_argument_traverser]);
 		//cout << "VAT: " << variadic_argument_traverser << " " << inputs[variadic_argument_traverser] << " is now ";
-		variadic_var->push_back(inputs[variadic_argument_traverser].get<VariadicType>());
+		if constexpr (std::is_same_v<VariadicType, ExternalObject>)
+			variadic_var->push_back(inputs[variadic_argument_traverser]);
+		else
+			variadic_var->push_back(inputs[variadic_argument_traverser].get<VariadicType>());
 		//variadic_var->push_back("test");
 		//cout << (variadic_var->back()) << "\n";
 	}
 
-	cout << variadic_var->size() << "\n";
+	//cout << variadic_var->size() << "\n";
 }
 
 #endif
