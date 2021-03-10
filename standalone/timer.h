@@ -8,7 +8,7 @@ public:
 	std::chrono::time_point<std::chrono::high_resolution_clock> start;
 	Timer() : start(std::chrono::high_resolution_clock::now()) {}
 	~Timer() {
-		std::cout <<
+		std::clog <<
 			std::chrono::duration_cast<std::chrono::milliseconds>(
 				std::chrono::high_resolution_clock::now() - start
 			).count() << "ms\n";

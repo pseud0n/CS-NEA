@@ -2,6 +2,7 @@
 #define HASH_H
 
 namespace std {
+	using namespace UL;
 	//friend unsigned long dec(const BigDec&);
 	template<>
 	struct hash<bmp::cpp_int> {
@@ -10,12 +11,41 @@ namespace std {
         }
     };
 
-	template <>
-	struct hash<UL::ExternalObject> {
-		size_t operator ()(const UL::ExternalObject& object) const noexcept {
-			return (size_t)object.io_ptr;
-		}
+	template<>
+	struct hash<CppFunction> {
+        size_t operator ()(const CppFunction& n) const noexcept {
+            return std::hash<size_t>()(((size_t)&n) >> 3); // 3: 64 bit
+        }
+    };
+
+
+	template<>
+	struct hash<FunctionView> {
+        size_t operator ()(const FunctionView& n) const noexcept {
+            return std::hash<size_t>()(((size_t)&n) >> 3); // 3: 64 bit
+        }
+    };
+
+	template<>
+	struct hash<BaseException> {
+        size_t operator ()(const BaseException& n) const noexcept {
+            return std::hash<size_t>()((size_t)&n); // 3: 64 bit
+        }
 	};
+
+	template<>
+	struct hash<ExternalObject> {
+		size_t operator ()(const ExternalObject&) const noexcept; 
+	};
+
+	/*
+	template<>
+	struct hash<PairT> {
+        size_t operator ()(const Aliases::PairT& n) const noexcept {
+            return std::hash<size_t>()()
+        }
+    };
+	*/
 /*
 	template <>
 	struct hash<UL::ExternalObject> {

@@ -12,7 +12,9 @@ motivate () {
 }
 
 
-clear
+
+printf "\033[H\033[2J\033[3J"
+# clear
 
 echo "Started at $(date +"%T")"
 
@@ -26,7 +28,7 @@ make
 if [ $? -eq 0 ]
 then
 	echo "${green}BUILD: SUCCESS${reset}; $((`date +%s`-build_start))s"
-	./a.out
+	./output/program.out
 	if [ $? -eq 0 ]
 	then
 		echo "${green}EXECUTION: SUCCESS :)"

@@ -8,20 +8,26 @@
 #include <stack>
 #include <string>
 #include <iostream>
+#include <set>
 
+using std::clog;
+using std::cout;
 
 class Plumber {
 	friend std::ostream& operator <<(std::ostream&, const Plumber&);
 private:
 	static inline size_t memory_usage = 0;
+	static std::set<void*> pointers;
 
 public:
-	static void add(size_t size) {
+	static void add(size_t size, void* ptr) {
 		memory_usage += size;
+		//pointers.insert(ptr);
 	}
 
-	static void subtract(size_t size) {
+	static void subtract(size_t size, void* ptr) {
 		memory_usage -= size;
+		//pointers.erase(ptr);
 	}
 
 	Plumber() {
@@ -30,16 +36,16 @@ public:
 
 	~Plumber() {
 		#ifdef PLUMBER_NO_SIZE_TRACK
-		cout << "\nEXIT MEMORY NOT TRACKED - undefine 'PLUMBER_NO_SIZE_TRACK' and recompile\n";
+		clog << "\nEXIT MEMORY NOT TRACKED - undefine 'PLUMBER_NO_SIZE_TRACK' and recompile\n";
 		#else
 		if (memory_usage)
-			cout << BG_WARNING;
+			clog << BG_WARNING;
 		cout << "\nEXIT MEMORY INCREASE: " << memory_usage << " bytes" FBG_DEFAULT "\n";
 		#endif
 	}
 	
-	size_t get() const {
-		return memory_usage;
+	static void get() {
+		clog << "MEMORY USAGE: " << memory_usage << "\n";
 	}
 };
 
@@ -51,7 +57,7 @@ std::ostream& operator<<(std::ostream& stream, const Plumber&) {
 
 void* operator new(size_t size) {
 	#ifdef PLUMBER_DEBUG
-	cout << FG_GENERIC "(+" << size << ")" << FBG_DEFAULT;
+	clog << FG_GENERIC "(+" << size << ")" << FBG_DEFAULT;
 	#endif
 	return malloc(size);
 }
@@ -64,11 +70,11 @@ void operator delete(void* memory) noexcept {
 
 void* operator new(size_t size) {
 	#ifdef PLUMBER_DEBUG
-	cout << FG_NEW "(+" << size << ")" << FBG_DEFAULT;
+	clog << FG_NEW "(+" << size << ")" << FBG_DEFAULT;
 	#endif
 	size_t *memory = (size_t*)malloc(size + sizeof(size_t));
 	memory[0] = size; // Stores size in first sizeof(size_t) bytes
-	Plumber::add(size);
+	Plumber::add(size, memory);
 	return (void*)(memory + 1); // Returns pointer as void without first
 
 	// malloc??? in a C++ program? The power of $(GENERIC_DEITY) compels you
@@ -77,11 +83,13 @@ void* operator new(size_t size) {
 void operator delete(void* memory) noexcept {
 	size_t size = *((size_t*)(memory) - 1);
 	#ifdef PLUMBER_DEBUG
-	cout << FG_DELETE "(-" << size << ")" << FBG_DEFAULT;
+	clog << FG_DELETE "(-" << size << ")" << FBG_DEFAULT;
 	#endif
-	Plumber::subtract(size);
+	Plumber::subtract(size,(void*)memory);
 	free((size_t*)memory - 1);
 }
+
+std::set<void*> Plumber::pointers {};
 
 #endif
 

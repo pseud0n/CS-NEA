@@ -7,6 +7,6 @@ const auto vec = new std::vector<OPTR>(3);
 (*vec)[1].create_from_blank(vec2);
 (*vec)[2].create_from_blank(5);
 
-cout << "Cool\n";
+clog << "Cool\n";
 OPTR x(vec);
-cout << x << "\n";
+clog << x << "\n";

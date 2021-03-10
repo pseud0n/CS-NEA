@@ -44,9 +44,9 @@ class Plumber {
 		friend std::ostream& operator <<(std::ostream&, const Plumber&);
 	public:
 		static void add(size_t value) {
-			cout << "LEN " << instances.size() << "\n";
+			clog << "LEN " << instances.size() << "\n";
 			if (instances.size())
-				cout << "TOP " << instances.top() << "\n";
+				clog << "TOP " << instances.top() << "\n";
 			//instances.top()->memory_usage += value;
 		}
 
@@ -55,7 +55,7 @@ class Plumber {
 		}
 
 		Plumber() : memory_usage(0) {
-			cout << "CONS\n";
+			clog << "CONS\n";
 			static bool init_stack = [](){
 				instances = std::stack<Plumber*>();
 				return 0;
@@ -64,10 +64,10 @@ class Plumber {
 		}
 		
 		~Plumber() {
-			cout << *this << " " << instances.size() << " " << *instances.top() << "\n";
+			clog << *this << " " << instances.size() << " " << *instances.top() << "\n";
 			if (memory_usage)
-				cout << BG_WARNING;
-			cout << "\nEXIT MEMORY INCREASE: " << memory_usage << " bytes" FBG_DEFAULT "\n";
+				clog << BG_WARNING;
+			clog << "\nEXIT MEMORY INCREASE: " << memory_usage << " bytes" FBG_DEFAULT "\n";
 			instances.pop();
 		}
 		
@@ -82,7 +82,7 @@ std::ostream& operator<<(std::ostream& stream, const Plumber& instance) {
 
 void* operator new(size_t size) {
 	#ifdef PLUMBER_DEBUG
-	cout << FG_NEW "(+" << size << ")" << FBG_DEFAULT;
+	clog << FG_NEW "(+" << size << ")" << FBG_DEFAULT;
 	#endif
 	size_t *memory = (size_t*)malloc(size + sizeof(size_t));
 	memory[0] = size; // Stores size in first sizeof(size_t) bytes
@@ -95,7 +95,7 @@ void* operator new(size_t size) {
 void operator delete(void* memory) noexcept {
 	size_t size = *((size_t*)(memory) - 1);
 	#ifdef PLUMBER_DEBUG
-	cout << FG_DELETE "(-" << size << ")" << FBG_DEFAULT;
+	clog << FG_DELETE "(-" << size << ")" << FBG_DEFAULT;
 	#endif
 	Plumber::subtract(size);
 	free((size_t*)memory - 1);

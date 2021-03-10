@@ -4,7 +4,7 @@
 //template <const char* Inclusion>
 struct _Say {
 	_Say(const char *header) {
-		cout << "**" << header << "**\n";
+		clog << "**" << header << "**\n";
 	}	
 };
 

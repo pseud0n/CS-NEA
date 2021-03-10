@@ -18,3 +18,7 @@ public:
 	ExternalObject operator ()(std::vector<ExternalObject>&);
 
 };
+
+bool operator ==(const FunctionView& f1, const FunctionView& f2) {
+	return &f1 == &f2; // Cannot know if functions are the same, so just check if the internal pointers are equal
+}

@@ -22,17 +22,22 @@ template <typename T>
 struct CorrespondingReverse;
 
 template <typename T>
+using RemoveRefConst = typename std::remove_const_t<std::remove_reference_t<T>>; 
+
+template <typename T>
 using GetCorrespondingType =
-	typename CorrespondingType<std::remove_reference_t<T>>::Tp;
+	typename CorrespondingType<RemoveRefConst<T>>::Tp;
 
 template <typename T>
 using GetAssociatedData =
-	AssociatedData<std::remove_reference_t<T>>;
+	AssociatedData<RemoveRefConst<T>>;
 
-MAKE_TYPE_CONVERSION(std::string, std::string, Types::string, true)
+MAKE_TYPE_CONVERSION(std::string, Aliases::StringT, Types::string, true)
+//ADD_TYPE_CONVERSION(char, Aliases::StringT)
+
 MAKE_TYPE_CONVERSION(bool, bool, Types::boolean, true)
 
-MAKE_TYPE_CONVERSION(std::nullptr_t, std::nullptr_t, Types::null, true)
+MAKE_TYPE_CONVERSION(std::nullptr_t, std::nullptr_t, Types::null_type, true)
 
 MAKE_TYPE_CONVERSION(int, Aliases::NumT, Types::number, true)
 ADD_TYPE_CONVERSION(size_t, Aliases::NumT)
@@ -52,4 +57,8 @@ ADD_TYPE_CONVERSION(Aliases::CppFunctionT&, Aliases::CppFunctionT)
 MAKE_TYPE_CONVERSION(Aliases::CppFunctionViewT, Aliases::CppFunctionViewT, Types::cpp_function_view, false)
 
 MAKE_TYPE_CONVERSION(Aliases::BaseExceptionT, Aliases::BaseExceptionT, Types::base_exception, false)
+
+MAKE_TYPE_CONVERSION(Aliases::CodeBlockT, Aliases::CodeBlockT, Types::code_block, false)
+
+//MAKE_TYPE_CONVERSION(from, to, enum_t, make_immovable)
 #endif

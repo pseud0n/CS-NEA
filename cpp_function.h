@@ -2,6 +2,9 @@
 #define CPP_FUNCTION_H
 
 class CppFunction {
+	/*
+	This object has ownership of 
+	*/
 public:
 	using FuncT = std::function<ExternalObject(CppFunction const*, std::vector<ExternalObject>&)>;
 
@@ -39,12 +42,16 @@ public:
 	~CppFunction();
 
 	ExternalObject operator ()(std::vector<ExternalObject>&) const;
-	ExternalObject operator ()(									 ) const;
+	ExternalObject operator ()() const;
 
 	template <size_t MinArgCount, typename... TypesT>
-	bool assign_args(std::vector<ExternalObject>&, TypesT&...) const;
-	template <size_t MinArgCount, typename VariadicType, typename... TypesT> bool assign_variadic_args(std::vector<ExternalObject>&, std::vector<VariadicType>*, TypesT&...) const;
-	template <typename VariadicType>
-	void assign_variadic_args(size_t, std::vector<ExternalObject>&, std::vector<VariadicType>*) const;
+	bool assign_args(std::vector<ExternalObject>&, TypesT*&...) const;
+	template <size_t MinArgCount, typename VariadicType, typename... TypesT> bool assign_variadic_args(std::vector<ExternalObject>&, std::vector<VariadicType*>&, TypesT*&...) const;
+	template <typename VariadicType> void assign_variadic_args(size_t, std::vector<ExternalObject>&, std::vector<VariadicType*>&) const;
 };
+
+bool operator ==(const CppFunction& f1, const CppFunction& f2) {
+	return &f1 == &f2; // Cannot know if functions are the same, so just check if the internal pointers are equal
+}
+
 #endif

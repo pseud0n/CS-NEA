@@ -3,22 +3,22 @@
 #ifndef CACHE_DO_H
 #define CACHE_DO_H
 
-using std::cout;
+using std::clog;
 
-//cout.setstate(std::ios_base::failbit);
+//clog.setstate(std::ios_base::failbit);
 
 //auto blank_function = new CppFunction({}, false, DY_LMBD { return new Object(nullptr); });
 
-cout << "Caching integers\n";
+clog << "Caching integers\n";
 
 for (int i = MIN_CACHED_INTEGER_VALUE; i <= MAX_CACHED_INTEGER_VALUE; ++i) {
 	
 	Cache::numbers[i - MIN_CACHED_INTEGER_VALUE] = new InternalObject<Aliases::NumT>(Aliases::NumT(i));
 }
 
-//cout.clear();
+//clog.clear();
 
-cout << "Cached integers in range " << MIN_CACHED_INTEGER_VALUE << " to " << MAX_CACHED_INTEGER_VALUE << " inclusive\n";
+clog << "Cached integers in range " << MIN_CACHED_INTEGER_VALUE << " to " << MAX_CACHED_INTEGER_VALUE << " inclusive\n";
 
 /*
 

@@ -4,14 +4,13 @@
 Made by Alex Scorza, 2020
 
 
-manual:
-	clear && make && ./a.out
-custom:
-	./go.sh
+(Run from this directory) ./go.sh
+Output in output/
 
-If permission to a.out is denied:
+If permission to ouput/program.out is denied:
 delete it:
 	make clean
+Look in README for more information
 
 https://www.programiz.com/cpp-programming/online-compiler/
 */
@@ -27,13 +26,13 @@ https://www.programiz.com/cpp-programming/online-compiler/
 #include <unordered_set>
 #include <forward_list>
 #include <type_traits>
+#include <filesystem>
 #include <functional>
 #include <algorithm>
 #include <iostream>
 #include <optional>
 #include <typeinfo>
-#include <cassert>
-#include <cstring>
+#include <fstream>
 #include <numeric>
 #include <sstream>
 #include <string>
@@ -41,19 +40,39 @@ https://www.programiz.com/cpp-programming/online-compiler/
 #include <array>
 #include <tuple>
 #include <list>
+#include <set>
+
+#include <cassert>
+#include <cstddef>
+#include <cstdlib>
+#include <cstring>
 
 // Setting up namespaces & aliases
 
+using std::clog;
 using std::cout;
-
 using std::cerr;
+
+#ifndef SHOW_CLOG
+struct Clearer {
+	Clearer() {
+		clog.setstate(std::ios_base::failbit);
+	}
+} _output_clearer; // Hack to do action outside of main
+#endif
+
+bool setup_everything = false;
+
+std::ios_base::fmtflags basic_flags(clog.flags());
+
 namespace bmp = boost::multiprecision;
 // for pow & cpp_int
 using namespace std::string_literals;
 // "dfdsgfsd"s ≡ std::string("dfdsgfsd") (for a literal only)
 // chrono_literals definition for numerical only, not string (phew!)
+namespace fs = std::filesystem;
 
-
+#include "standalone/type_name.cpp"
 #include "standalone/debug_object.h"
 #include "standalone/decl_display.h"
 #include "standalone/plumber.h"
@@ -61,29 +80,53 @@ using namespace std::string_literals;
 
 Plumber plumber;
 
-#define TEST_REPR(str) cout << "--------TEST: " << str << "\n\n"
+#define TEST_REPR(str) clog << "--------TEST: " << str << "\n\n"
 
 #define MKRRY	UL::ExternalObject::make_array
 #define MKRRY_W	UL::ExternalObject::make_array_w
-#define MKDCT	UL::ExternalObject::make_dict
+#define MKDCT	UL::ExternalObject::make_dict<Aliases::DictT>
+#define MKCSTM	UL::ExternalObject::make_dict<Aliases::CustomT>
 #define MKPR	UL::ExternalObject::make_pair
 
 #define MIN_CACHED_INTEGER_VALUE 0
 #define MAX_CACHED_INTEGER_VALUE 10
 
 //#include "big_dec.h"
-#include "forward_decl.h" // Header file to forward-declare object
+
+#define GENERATE_SWITCH(enum_val) \
+	switch(enum_val) {	\
+		case Types::null_type:	\
+			break;	\
+		case Types::number: SWITCH_MACRO(Aliases::NumT); break;	\
+		case Types::string: SWITCH_MACRO(Aliases::StringT); break; \
+		case Types::boolean: SWITCH_MACRO(Aliases::BoolT); break; \
+		case Types::cpp_function: SWITCH_MACRO(Aliases::CppFunctionT); break; \
+		case Types::cpp_function_view: SWITCH_MACRO(Aliases::CppFunctionViewT); break; \
+		case Types::pair: SWITCH_MACRO(Aliases::PairT); break; \
+		case Types::array: SWITCH_MACRO(Aliases::ArrayT); break; \
+		case Types::dictionary: SWITCH_MACRO(Aliases::DictT); break; \
+		case Types::base_exception: SWITCH_MACRO(Aliases::BaseExceptionT); break; \
+		case Types::custom: SWITCH_MACRO(Aliases::CustomT); break; \
+		case Types::code_block: SWITCH_MACRO(Aliases::CodeBlockT); break; \
+	}
 
 
 namespace UL {
-	#include "objects/internal_object.h"
-	#include "objects/external_object.h"
-	#include "cpp_function.h"
-	#include "function_view.h"
-	#include "code_block.cpp"
-	#include "objects/conversions.h"
-	#include "cache/decl.h"
-	#include "exceptions.h"
+#include "forward_decl.h" // Header file to forward-declare object
+#include "objects/internal_object.h"
+#include "objects/external_object.h"
+#include "cpp_function.h"
+#include "function_view.h"
+#include "objects/conversions.h"
+#include "cache/decl.h"
+#include "exceptions.h"
+#include "code_block.h"
+#include "base_exception.cpp"
+#include "default_exceptions.cpp"
+
+	using ObjectT = std::variant<ExternalObject, std::string*>;
+
+	std::map<Types, ExternalObject*> enum_to_class;
 }
 
 #include "hash.h"
@@ -92,65 +135,52 @@ namespace UL {
 
 
 //(UL::InternalObject<UL::Aliases::NumT>*)self.io_ptr
-#define __GENERATE_SWITCH(self) 							\
-	switch (self->type()) {									\
-		case Types::null:							\
-			break;									\
-		case Types::number:							\
-			SWITCH_MACRO(self->get<Aliases::NumT>());	\
-			break;									\
-		case Types::string:							\
-			SWITCH_MACRO(self->get<Aliases::StringT>());		\
-			break;									\
-		case Types::cpp_function:					\
-			SWITCH_MACRO(self->get<Aliases::CppFunctionT>());	\
-			break;									\
-		case Types::bytecode_function:				\
-			SWITCH_MACRO(SWITCH_MACRO(self->get<Aliases::ByteCodeFunctionT>());	\
-			break;									\
-		case Types::list:							\
-			SWITCH_MACRO(self->get<Aliases::ListT>());		\
-			break;									\
-		case Types::array:							\
-			SWITCH_MACRO(self->get<Aliases::ArrayT>());		\
-			break;	\
-		default:									\
-			break;									\
-	}
+
 #define CASE(enum_type, type) \
-	case enum_type: SWITCH_MACRO(type); break;
+	case Types::enum_type: SWITCH_MACRO(Aliases::type); break;
 
-#define GENERATE_SWITCH(enum_val) 							\
-	switch (enum_val) {									\
-		case Types::null:							\
-			break;									\
-		case Types::number:							\
-			SWITCH_MACRO(Aliases::NumT);	\
-			break;									\
-		case Types::string:							\
-			SWITCH_MACRO(Aliases::StringT);		\
-			break;									\
-		case Types::boolean:							\
-			SWITCH_MACRO(Aliases::BoolT);		\
-			break;									\
-		case Types::cpp_function:					\
-			SWITCH_MACRO(Aliases::CppFunctionT);	\
-			break;									\
-		case Types::bytecode_function:				\
-			SWITCH_MACRO(Aliases::ByteCodeFunctionT);	\
-			break;									\
-		case Types::list:							\
-			SWITCH_MACRO(Aliases::ListT);		\
-			break;									\
-		case Types::array:							\
-			SWITCH_MACRO(Aliases::ArrayT);		\
-			break;	\
-		CASE(Types::base_exception, Aliases::BaseExceptionT) \
-		default:									\
-			break;									\
+#define _GENERATE_SWITCH(enum_val)								\
+	switch (enum_val) {											\
+		case Types::null_type:										\
+			break;												\
+		case Types::number:										\
+			SWITCH_MACRO(Aliases::NumT);						\
+			break;												\
+		case Types::string:										\
+			SWITCH_MACRO(Aliases::StringT);						\
+			break;												\
+		case Types::boolean:									\
+			SWITCH_MACRO(Aliases::BoolT);						\
+			break;												\
+		case Types::cpp_function:								\
+			SWITCH_MACRO(Aliases::CppFunctionT);				\
+			break;												\
+		case Types::bytecode_function:							\
+			SWITCH_MACRO(Aliases::ByteCodeFunctionT);			\
+			break;												\
+		case Types::list:										\
+			SWITCH_MACRO(Aliases::ListT);						\
+			break;												\
+		case Types::array:										\
+			SWITCH_MACRO(Aliases::ArrayT);						\
+			break;												\
+		CASE(Types::base_exception, Aliases::BaseExceptionT)	\
+		default:												\
+			break;												\
 	}
-#undef CASE
 
+		/*
+		CASE(boolean, BoolT)	\
+		CASE(cpp_function, CppFunctionT)	\
+		CASE(cpp_function_view, CppFunctionViewT)	\
+		CASE(pair, PairT)	\
+		CASE(array, ArrayT)	\
+		CASE(dictionary, DictT)	\
+		CASE(base_exception, BaseExceptionT)	\
+		CASE(custom, CustomT)	\
+	};*/
+
+#undef CASE
 
 namespace UL {
 	namespace Tracker {
@@ -181,10 +211,10 @@ namespace UL {
 
 		void add_pair(Object* object) {
 			#ifdef TRACKER_DEBUG
-			cout << "Adding pair: " << *object << "\n";
+			clog << "Adding pair: " << *object << "\n";
 			stored_objects.push_back(object);
 			object_counts.push_back(1);
-			cout << "Added pair!\n";
+			clog << "Added pair!\n";
 			#endif
 		}
 
@@ -197,12 +227,12 @@ namespace UL {
 
 		void repr() {
 			#ifdef TRACKER_DEBUG
-			cout << "{";
+			clog << "{";
 			for (size_t i = 0; i < stored_objects.size(); ++i) {
-				if (i != 0) cout << ", ";
-				cout << stored_objects[i] << " (" << *stored_objects[i] << ", " << (stored_objects[i]->is_const ? "const" : "non-const") << ") : " << object_counts[i];
+				if (i != 0) clog << ", ";
+				clog << stored_objects[i] << " (" << *stored_objects[i] << ", " << (stored_objects[i]->is_const ? "const" : "non-const") << ") : " << object_counts[i];
 			}
-			cout << "}\n";
+			clog << "}\n";
 			#endif
 		}
 	} // namespace Tracker
@@ -264,10 +294,8 @@ namespace Utils {
 
 namespace UL {
 	std::unordered_map<Types, ExternalObject> builtin_objects;
+	std::unordered_map<Types, Aliases::CustomT> builtin_dicts;
 
-	std::unordered_map<Types, Aliases::CustomT> builtin_dicts {
-	{Types::string, { } }
-	};
 
 	/*
 	const std::unordered_map<UL::Types, const std::unordered_set<UL::Types> > conversion_table {
@@ -296,19 +324,45 @@ namespace UL {
 		std::vector<ExternalObject> temp(sizeof...(elements));
 		// Default-construct
 		size_t i = 0;
-		(( temp[i++] = ExternalObject::emplace<Ts>(std::forward<Ts>(elements)) ), ...);
+		((
+		  [&]() {
+			if constexpr(std::is_same_v<ExternalObject, std::remove_reference_t<Ts>>)
+				temp[i++] = std::forward<Ts>(elements);
+			else
+				temp[i++] = ExternalObject::emplace<Ts>(std::forward<Ts>(elements));
+		  }()
+        ), ...);
 		// Construct from lvalue or rvalue references and emplace
 		// Using rvalue references: Constructs InternalObject then moves
 		return temp;
 		// Deletes null ExternalObjects left over from std::move (if && not &)
 	}
 
+	//std::unordered_map<std::string, ExternalObject> all_builtins;
+
+#define ADD_CLASS_REF(ref_name, string) ExternalObject& ref_name = all_builtins[string];
+
+	namespace Classes {
+		ADD_CLASS_REF(object, "Object")
+		ADD_CLASS_REF(cls, "Class")
+		ADD_CLASS_REF(null_type, "NullType")
+		ADD_CLASS_REF(integer, "Integer")
+		ADD_CLASS_REF(string, "String")
+		ADD_CLASS_REF(boolean, "Boolean")
+		ADD_CLASS_REF(cpp_function, "Function")
+		ADD_CLASS_REF(cpp_function_view, "FunctionView")
+		ADD_CLASS_REF(code_block, "CodeBlock")
+		ADD_CLASS_REF(pair, "Pair")
+		ADD_CLASS_REF(array, "Array")
+		ADD_CLASS_REF(dict, "Dict")
+		ADD_CLASS_REF(base_exception, "ExcBase")
+		ADD_CLASS_REF(custom, "Generic")
+	}
+
 	struct ByteCodeFunction {
 		//Functor class which represents a function written in bytecode
 		size_t start_line, code_length;
 	};
-
-
 
 		/*
 		When methods are retrieved from an object, the names an definitions need to be known.
@@ -338,40 +392,64 @@ namespace UL {
 																					  <= Object (Class) < ...
 
 		*/
-	#include "bytecode/instructions.cpp"
-
-	Bytecode::ScopeStack scopes;
-	void throw_error(ExternalObject object) {
-		scopes.throw_error(object); // by reference
+	namespace Bytecode {
+#include "bytecode/scope_stack.cpp"
+#include "bytecode/bc_data.cpp"
 	}
 
-	#include "objects/external_object.cpp"
-	#include "objects/internal_object.cpp"
+#include "base_exception.cpp"
+#include "code_block.cpp"
+#include "objects/external_object.cpp"
+#include "objects/internal_object.cpp"
 
-	#include "cpp_function.cpp"
-	#include "function_view.cpp"
+#include "cpp_function.cpp"
+#include "function_view.cpp"
 
-	#include "bytecode/instructions.cpp"
+	template <size_t S>
+	bool type_match(std::vector<ExternalObject*>& given, std::array<Types, S>& accepts) {
+		for (size_t i = 0; i < given.size(); ++i)
+			if (given[i]->type() != accepts[i])
+				return false;
+		return true;
+	}
 
-	#define ADD_OBJECT(name) ExternalObject name = Aliases::CustomT();
+	bool get_object_as_bool(ExternalObject& object) {
+		ExternalObject boolean = ExternalObject(object.get_attr("ToBool"))();
+		if (boolean.type() != Types::boolean) {
+			THROW_ERROR(Exceptions::expected_bool(object))
+		}
+		return boolean.get<Aliases::BoolT>();
+	}
 
-	namespace Classes {
-		ADD_OBJECT(object)
-		ADD_OBJECT(string)
-		ADD_OBJECT(base_exception)
-	} // Classes
+	ExternalObject *value_ptr;
+
+/*
+#define ADD_OBJECT(i_name, e_name)\
+	*(value_ptr = &all_builtins[e_name]) = MKCSTM("Name"s,e_name##s);\
+	namespace Classes { ExternalObject& i_name = *value_ptr;  }
 	
-	#undef ADD_OBJECT
+
+	
+namespace Classes {}
+
+ADD_OBJECT(object, "Object")
+ADD_OBJECT(cls, "Class")
+ADD_OBJECT(string, "String")
+ADD_OBJECT(base_exception, "ExcBase")
+
+#undef ADD_OBJECT
+*/
 
 	template <typename T, typename R=ExternalObject>
-	ExternalObject make_monadic_method (std::function<R(T&)>&& code) {
+	ExternalObject make_monadic_method (std::function<R(T*)>&& code) {
 		return ExternalObject::emplace<Aliases::CppFunctionT>(
 			CppFunction::empty_eobject_vec, false, UL_LMBD {
-				GetCorrespondingType<T> self_obj; // Argument stored in function view
+				GetCorrespondingType<T> *self_obj; // Argument stored in function view
 				if (!argument_data->assign_args<1>(arguments, self_obj)) {
 					return nullptr;
 				}
-				return std::invoke(code, self_obj);
+				//print("MMM result:", result);
+				return code(self_obj);
 				// `code` is a lambda e.g. [](Aliases::NumT x){ return x + 1; }
 			}, std::vector<Types>{AssociatedData<T>::enum_type}
 		);
@@ -379,7 +457,6 @@ namespace UL {
 		//return temp;
 	}
 
-	Aliases::CustomT *class_ptr;
 /*
 	void emplace_map(const char* name, const ExternalObject& obj) {
 		print("In emplace_map");
@@ -389,4 +466,42 @@ namespace UL {
 */
 } // UL
 
+namespace std {
+
+#define HASH(T) std::hash<T>()(object.get<T>())
+	size_t hash<ExternalObject>::operator ()(const ExternalObject& object) const noexcept {
+		switch(object.type()) {
+			case Types::null_type:
+				return 0xDEADBEEF; // Haha
+			case Types::boolean:
+				return HASH(Aliases::BoolT);
+			case Types::number:
+				return HASH(Aliases::NumT);
+			case Types::string:
+				return HASH(Aliases::StringT);
+			case Types::cpp_function:
+				return HASH(Aliases::CppFunctionT);
+			case Types::cpp_function_view:
+				return HASH(Aliases::CppFunctionViewT);
+			case Types::pair:
+			{
+				const Aliases::PairT& pair = object.get<Aliases::PairT>();
+				return std::hash<ExternalObject>()(pair.first) ^ std::hash<ExternalObject>()(pair.second); // 3: 64 bit
+			}
+			case Types::array:
+				return HASH(Aliases::ArrayT);
+			case Types::base_exception:
+				return HASH(Aliases::BaseExceptionT);
+			default:
+			{
+				std::ostringstream osstream;
+				osstream << "Cannot hash type '" << enum_to_class[object.type()] << "'";
+				std::cin.get();
+				return 0;
+				//THROW_ERROR(osstream.str());
+			}
+		}
+	}
+#undef HASH
+} // std
 #endif

@@ -14,7 +14,7 @@ However, experimenting with examples shows that there may be contradictions crea
 #include <algorithm>
 #include <utility>
 
-using std::cout;
+using std::clog;
 using ClassT = InternalObject*;
 
 template <typename T> using fwd = std::forward_list<T>;
@@ -59,7 +59,7 @@ std::unordered_map<ClassT, fwd<ClassT>> memoised;
 
 //template <typename T>
 bool tail_with_element(const fwd<ClassT>& list, ClassT element /* e.g. 'A' */) {
-    cout << "Checking if " << list << " contains " << element << "\n";
+    clog << "Checking if " << list << " contains " << element << "\n";
     if (list.empty()) {
         std::cerr << "How could this happen?\n";
         exit(0);
@@ -72,19 +72,19 @@ bool tail_with_element(const fwd<ClassT>& list, ClassT element /* e.g. 'A' */) {
 
     /*
     for (fwd_c_it<ClassT> it = list.begin(); ++it != list.end();) { // pre-increment so first value is ignored
-        cout << "\tChecking " << *it << " against " << element << "\n";
+        clog << "\tChecking " << *it << " against " << element << "\n";
         if (*it == element) // Checks each element starting from the second
             return false; // Found element in tail of list
     }
     */
 
     for (fwd_c_it<ClassT> it = list.begin(); ++it != list.end();) { // for-each loop, looking at each element and, if 
-        cout << "\tChecking " << *it << " against " << element << "\n"; 
+        clog << "\tChecking " << *it << " against " << element << "\n"; 
         //if (el == element)
         if (*it == element)
             return true;
     }
-    //cout << "";
+    //clog << "";
     return false; // Did not find element
 }
 
@@ -108,12 +108,12 @@ bool tails_without_element(const fwd<fwd<ClassT>>& list, ClassT element) {
 */
 
 void mutating_remove_if(fwd<fwd<ClassT>>& list_of_lists, ClassT element) {
-    cout << "Removing element " << element << " from " << list_of_lists << "\n";
+    clog << "Removing element " << element << " from " << list_of_lists << "\n";
     for (fwd_it<fwd<ClassT>> ll_it = list_of_lists.begin(); ll_it != list_of_lists.end(); ++ll_it) {
         ll_it->remove(element); // Linear search
         /*
         for (fwd_it<ClassT> l_it = ll_it->begin(); l_it != ll_it->end(); ++l_it) {
-            //cout << "HERE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n";
+            //clog << "HERE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n";
             if (*l_it == element) {
                 ll_it->erase_after(l_it);
                 break; // Each element only appears once
@@ -125,7 +125,7 @@ void mutating_remove_if(fwd<fwd<ClassT>>& list_of_lists, ClassT element) {
 
 template <typename T>
 void append_to_list(fwd<T>& list, fwd_it<T>& iterator, T element, bool increment_bool = true) {
-    cout << "Appending\n";
+    clog << "Appending\n";
     /*
     if (list.empty())
         list.push_front(element);
@@ -139,9 +139,9 @@ void append_to_list(fwd<T>& list, fwd_it<T>& iterator, T element, bool increment
 }
 
 ReturnValues mutating_merge(fwd<ClassT>& accumulated_mro, fwd_it<ClassT>& accumulated_mro_end_it, fwd<fwd<ClassT>>& to_merge) {
-    cout << "\n\n" << accumulated_mro;
+    clog << "\n\n" << accumulated_mro;
     //if (!accumulated_mro.empty())
-    //    cout << "Current iter value: " << *accumulated_mro_end_it << "\n";
+    //    clog << "Current iter value: " << *accumulated_mro_end_it << "\n";
     ClassT candidate;
     //for (std::pair<ClassT, const fwd<ClassT>> el: heterarchy)
     //std::optional<ClassT> consistent_element;
@@ -149,13 +149,13 @@ ReturnValues mutating_merge(fwd<ClassT>& accumulated_mro, fwd_it<ClassT>& accumu
     ClassT consistent_element = 0;
     size_t length_counter;
 
-    cout << "to_merge: " << to_merge << "\n";
+    clog << "to_merge: " << to_merge << "\n";
     for (const fwd<ClassT>& list : to_merge) {
         if (consistently_one && ++list.begin() != list.end())
             consistently_one = false;
         if (all_tails_without_element(to_merge, list.front())) {
             // Then this is a viable candidate
-            cout << list.front() << " is viable!\n";
+            clog << list.front() << " is viable!\n";
             candidate = list.front();
             goto found_viable_class;
         }
@@ -164,12 +164,12 @@ ReturnValues mutating_merge(fwd<ClassT>& accumulated_mro, fwd_it<ClassT>& accumu
     /*
     for (fwd_c_it<fwd<ClassT>> mro_it = to_merge.cbegin(); mro_it != to_merge.cend(); ++mro_it) {
         // *mro_it is each sublist and its head is that needs to be compared to each tail of each sub-list
-        cout << "mro_it " << *mro_it << "\n";
+        clog << "mro_it " << *mro_it << "\n";
         length_counter = 0;
         fwd_c_it<ClassT> it = mro_it->cbegin();
         while (it != mro_it->cend()) {
             // *it is each sub-list (still including the head, which is ignored in tail_without_element)
-            cout << "it, mro_it " << *it << ", " << *mro_it << "\n";
+            clog << "it, mro_it " << *it << ", " << *mro_it << "\n";
             if (tail_without_element(*mro_it, *it)) { // Then this is the first viable candidate and is selected
                 candidate = *it;
                 goto endloop;
@@ -177,23 +177,23 @@ ReturnValues mutating_merge(fwd<ClassT>& accumulated_mro, fwd_it<ClassT>& accumu
 
             ++it, ++length_counter;
         }
-        cout << "length of " << *mro_it << " is " << length_counter << "\n";
+        clog << "length of " << *mro_it << " is " << length_counter << "\n";
         if (length_counter != 1) {
             consistently_one = false;
         }
         else if (consistently_one) {
-            cout << "Still consistent!\n";
+            clog << "Still consistent!\n";
             if (consistent_element == 0) { // If not already assigned, assign it to this (should happen for first element only)
-                cout << "Char empty, *it=" << mro_it->front() << "\n";
+                clog << "Char empty, *it=" << mro_it->front() << "\n";
                 consistent_element = mro_it->front();
             }
             else { // If it has a character
-                cout << "Char: '" << consistent_element << "'\n";
+                clog << "Char: '" << consistent_element << "'\n";
                 if (mro_it->front() != consistent_element)
                     consistently_one = false;
             }
         }
-        cout << "Here!\n";
+        clog << "Here!\n";
     }
     */
     
@@ -202,36 +202,36 @@ ReturnValues mutating_merge(fwd<ClassT>& accumulated_mro, fwd_it<ClassT>& accumu
     Either there is an error and a consistent MRO or all lists are a single element
     */
 
-    cout << "Current MRO: " << accumulated_mro << "\n";
+    clog << "Current MRO: " << accumulated_mro << "\n";
 
     if (consistently_one) {
-        cout << "Consistently " << to_merge.front().front() << "\n";
+        clog << "Consistently " << to_merge.front().front() << "\n";
         //accumulated_mro.insert_after(accumulated_mro_end_it, consistent_element);
         append_to_list(accumulated_mro, accumulated_mro_end_it, to_merge.front().front());
         return ReturnValues::found;
     } else {
-        cout << "Inconsistent!\n";
+        clog << "Inconsistent!\n";
         return ReturnValues::invalid;
     }
 
     found_viable_class:
-    cout << "candidate for " << to_merge << " = '" << candidate << "', consistently one element: " << consistently_one << "\n";
+    clog << "candidate for " << to_merge << " = '" << candidate << "', consistently one element: " << consistently_one << "\n";
     //std::cin.get();
     mutating_remove_if(to_merge, candidate);
     //to_merge.remove(candidate);
     append_to_list(accumulated_mro, accumulated_mro_end_it, candidate);
-    cout << "so far " << accumulated_mro << " ";
-    cout << to_merge << "\n";
+    clog << "so far " << accumulated_mro << " ";
+    clog << to_merge << "\n";
 
     return ReturnValues::not_yet_found;
 }
 
 fwd<ClassT> mro_of(ClassT class_object, std::unordered_map<ClassT, fwd<ClassT>>& heterarchy) {
     fwd<ClassT> output;
-    cout << "In mro_of\n";
+    clog << "In mro_of\n";
     std::unordered_map<ClassT, fwd<ClassT>>::iterator cached;
     if (heterarchy.end() != (cached = memoised.find(class_object))) {
-        cout << class_object << " cached already: " << cached->second << "\n";
+        clog << class_object << " cached already: " << cached->second << "\n";
         output = cached->second; // If class MRO cache found, get the value of this.
     } else {
         /*
@@ -239,7 +239,7 @@ fwd<ClassT> mro_of(ClassT class_object, std::unordered_map<ClassT, fwd<ClassT>>&
         Add this head to the front and repeat the merging process with the remaining lists
         If there are no heads which are candidates, then there has been an error and a consistent MRO cannot be found
         */
-        cout << "Super classes of " << class_object << ": " << heterarchy[class_object] << "\n";
+        clog << "Super classes of " << class_object << ": " << heterarchy[class_object] << "\n";
         if (heterarchy[class_object].empty()) {
             output.push_front('O');
             return output;
@@ -264,27 +264,27 @@ fwd<ClassT> mro_of(ClassT class_object, std::unordered_map<ClassT, fwd<ClassT>>&
         // None are initially valid since
 
         *merge_it = mro_of(heterarchy[class_object].front(), heterarchy);
-        //cout << to_merge << "\n";
-        cout << "--------\n";
+        //clog << to_merge << "\n";
+        clog << "--------\n";
         while (++heterarchy_it != heterarchy[class_object].end()) {
             to_merge.insert_after(merge_it, fwd<ClassT>{});
             *++merge_it = mro_of(*heterarchy_it, heterarchy);
         }
         //merge_it->pop_front(); // Removes name of class from presented MRO
 
-        cout << to_merge << "\n";
+        clog << to_merge << "\n";
 
-        //cout << *accumulated_mro_end_it << "\n";
+        //clog << *accumulated_mro_end_it << "\n";
 
         ReturnValues mro_result = ReturnValues::not_yet_found;
 
         //mutating_merge(accumulated_mro, accumulated_mro_end_it, to_merge);
 
-        cout << accumulated_mro << " " << to_merge << "\n";
+        clog << accumulated_mro << " " << to_merge << "\n";
 
         //mutating_merge(accumulated_mro, accumulated_mro_end_it, to_merge);
 
-        cout << accumulated_mro << " " << to_merge << "\n"; //<< " " << (mro_result == ReturnValues::not_yet_found)
+        clog << accumulated_mro << " " << to_merge << "\n"; //<< " " << (mro_result == ReturnValues::not_yet_found)
 
         while ((mro_result = mutating_merge(accumulated_mro, accumulated_mro_end_it, to_merge)) == ReturnValues::not_yet_found);
 

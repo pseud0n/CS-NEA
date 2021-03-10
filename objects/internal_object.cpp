@@ -14,6 +14,23 @@ void InternalObject<StoredT>::emplace(CtorTs&&... args) {
 	stored_value.emplace(std::forward<CtorTs>(args)...);
 }
 
+/*
+template <typename StoredT>
+InternalObject::InternalObject(InternalObject<StoredT>&& from)
+	: type(from.type), reference_count(1), is_immovable() {
+ }
+*/
+
+template <typename StoredT>
+template <typename T>
+InternalObject<StoredT>* InternalObject<StoredT>::copy(const T& object) { // pass by value; copy
+	print("Making copy of object", typeid(T).name());
+	//T object_copy(object); // Copy assignment operator; new, independent object made
+	//print("Made copy of object", &object_copy, &object);
+	return new InternalObject<StoredT>(object);
+}
+
+
 template <typename StoredT>
 InternalObject<StoredT>::InternalObject()
 	: type(AssociatedData<StoredT>::enum_type), reference_count(1),
@@ -25,6 +42,7 @@ template <typename... CtorTs>
 InternalObject<StoredT>::InternalObject(CtorTs&&... args) // e.g. std::string
 	: type(AssociatedData<StoredT>::enum_type), reference_count(1), is_immovable(AssociatedData<StoredT>::is_immovable) {
 	stored_value.emplace(std::forward<CtorTs>(args)...);
+	// didn't use emplace function since it uses and extra std::forward
 	/*
 	If a large object like a long string is passed in, it should be
 	moved, not copied.

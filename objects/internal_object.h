@@ -20,6 +20,9 @@ public:
 	// unidentified underlying object
 	// Alternatively, a pointer to a dictionary
 	
+	template <typename T> static InternalObject<StoredT>* copy(const T&);
+	template <typename T> static InternalObject<StoredT>* deep_copy(const T&);
+
 	InternalObject();
 	template<typename... Ts> InternalObject(Ts&&...);
 	~InternalObject();
