@@ -1,0 +1,2319 @@
+Grammar
+
+    0 $accept: start $end
+
+    1 start: lines
+
+    2 lines: line
+    3      | line lines
+
+    4 line: ';'
+    5     | expr ';'
+
+    6 csv: %empty
+    7    | expr
+    8    | csv ',' expr
+
+    9 basic_operand: T_NUM
+   10              | T_STR
+   11              | T_ID
+   12              | '{' '}'
+
+   13 $@1: %empty
+
+   14 basic_operand: '{' $@1 lines '}'
+
+   15 $@2: %empty
+
+   16 basic_operand: '[' $@2 csv ']'
+   17              | '(' expr ')'
+   18              | basic_operand '.' T_ID
+
+   19 expr: assignment
+
+   20 assignment: argument_expansion
+   21           | argument_expansion '=' assignment
+   22           | argument_expansion ":=" assignment
+
+   23 argument_expansion: comparisons
+   24                   | '*' comparisons
+
+   25 comparisons: containment
+   26            | comparisons "===" containment
+   27            | comparisons "!==" containment
+   28            | comparisons "==" containment
+   29            | comparisons "!=" containment
+   30            | comparisons ">=" containment
+   31            | comparisons "<=" containment
+   32            | comparisons ">" containment
+   33            | comparisons "<" containment
+
+   34 containment: logical_xnor
+   35            | containment "IN" logical_xnor
+
+   36 logical_xnor: logical_xor
+   37             | logical_xnor "XNOR" logical_xor
+
+   38 logical_xor: logical_nor
+   39            | logical_xor "XOR" logical_nor
+
+   40 logical_nor: logical_or
+   41            | logical_nor "NOR" logical_or
+
+   42 logical_or: logical_nand
+   43           | logical_or "OR" logical_nand
+
+   44 logical_nand: logical_and
+   45             | logical_nand "NAND" logical_and
+
+   46 logical_and: logical_not
+   47            | logical_and "AND" logical_not
+
+   48 logical_not: dots
+   49            | "NOT" dots
+
+   50 dots: add_sub
+   51     | dots ".." add_sub
+   52     | dots "..." add_sub
+
+   53 add_sub: mul_div_mod
+   54        | add_sub '+' mul_div_mod
+   55        | add_sub '-' mul_div_mod
+
+   56 mul_div_mod: unary_negate
+   57            | mul_div_mod '*' unary_negate
+   58            | mul_div_mod '/' unary_negate
+   59            | mul_div_mod '%' unary_negate
+
+   60 unary_negate: exponentiation
+   61             | '-' exponentiation
+
+   62 exponentiation: adjacent
+   63               | adjacent "**" exponentiation
+
+   64 adjacent: pre_unary
+
+   65 $@3: %empty
+
+   66 adjacent: adjacent "->" $@3 pre_unary
+
+   67 pre_unary: post_unary
+   68          | "++" post_unary
+   69          | "--" post_unary
+
+   70 post_unary: copy
+   71           | copy "++"
+   72           | copy "--"
+   73           | copy "!"
+
+   74 copy: call
+   75     | '@' call
+
+   76 call: basic_operand
+
+   77 $@4: %empty
+
+   78 call: basic_operand '(' $@4 csv ')'
+
+
+Terminals, with rules where they appear
+
+    $end (0) 0
+    '%' (37) 59
+    '(' (40) 17 78
+    ')' (41) 17 78
+    '*' (42) 24 57
+    '+' (43) 54
+    ',' (44) 8
+    '-' (45) 55 61
+    '.' (46) 18
+    '/' (47) 58
+    ';' (59) 4 5
+    '=' (61) 21
+    '@' (64) 75
+    '[' (91) 16
+    ']' (93) 16
+    '{' (123) 12 14
+    '}' (125) 12 14
+    error (256)
+    T_NUM (258) 9
+    T_ID (259) 11 18
+    T_STR (260) 10
+    ":=" (261) 22
+    "**" (262) 63
+    "..." (263) 52
+    ".." (264) 51
+    "->" (265) 66
+    "++" (266) 68 71
+    "--" (267) 69 72
+    "AND" (268) 47
+    "OR" (269) 43
+    "NOT" (270) 49
+    "IN" (271) 35
+    "===" (272) 26
+    "!==" (273) 27
+    "==" (274) 28
+    "!=" (275) 29
+    ">=" (276) 30
+    "<=" (277) 31
+    ">" (278) 32
+    "<" (279) 33
+    "XNOR" (280) 37
+    "XOR" (281) 39
+    "NOR" (282) 41
+    "NAND" (283) 45
+    "!" (284) 73
+
+
+Nonterminals, with rules where they appear
+
+    $accept (46)
+        on left: 0
+    start (47)
+        on left: 1
+        on right: 0
+    lines (48)
+        on left: 2 3
+        on right: 1 3 14
+    line (49)
+        on left: 4 5
+        on right: 2 3
+    csv (50)
+        on left: 6 7 8
+        on right: 8 16 78
+    basic_operand (51)
+        on left: 9 10 11 12 14 16 17 18
+        on right: 18 76 78
+    $@1 (52)
+        on left: 13
+        on right: 14
+    $@2 (53)
+        on left: 15
+        on right: 16
+    expr (54)
+        on left: 19
+        on right: 5 7 8 17
+    assignment (55)
+        on left: 20 21 22
+        on right: 19 21 22
+    argument_expansion (56)
+        on left: 23 24
+        on right: 20 21 22
+    comparisons (57)
+        on left: 25 26 27 28 29 30 31 32 33
+        on right: 23 24 26 27 28 29 30 31 32 33
+    containment (58)
+        on left: 34 35
+        on right: 25 26 27 28 29 30 31 32 33 35
+    logical_xnor (59)
+        on left: 36 37
+        on right: 34 35 37
+    logical_xor (60)
+        on left: 38 39
+        on right: 36 37 39
+    logical_nor (61)
+        on left: 40 41
+        on right: 38 39 41
+    logical_or (62)
+        on left: 42 43
+        on right: 40 41 43
+    logical_nand (63)
+        on left: 44 45
+        on right: 42 43 45
+    logical_and (64)
+        on left: 46 47
+        on right: 44 45 47
+    logical_not (65)
+        on left: 48 49
+        on right: 46 47
+    dots (66)
+        on left: 50 51 52
+        on right: 48 49 51 52
+    add_sub (67)
+        on left: 53 54 55
+        on right: 50 51 52 54 55
+    mul_div_mod (68)
+        on left: 56 57 58 59
+        on right: 53 54 55 57 58 59
+    unary_negate (69)
+        on left: 60 61
+        on right: 56 57 58 59
+    exponentiation (70)
+        on left: 62 63
+        on right: 60 61 63
+    adjacent (71)
+        on left: 64 66
+        on right: 62 63 66
+    $@3 (72)
+        on left: 65
+        on right: 66
+    pre_unary (73)
+        on left: 67 68 69
+        on right: 64 66
+    post_unary (74)
+        on left: 70 71 72 73
+        on right: 67 68 69
+    copy (75)
+        on left: 74 75
+        on right: 70 71 72 73
+    call (76)
+        on left: 76 78
+        on right: 74 75
+    $@4 (77)
+        on left: 77
+        on right: 78
+
+
+State 0
+
+    0 $accept: • start $end
+
+    T_NUM  shift, and go to state 1
+    T_ID   shift, and go to state 2
+    T_STR  shift, and go to state 3
+    "++"   shift, and go to state 4
+    "--"   shift, and go to state 5
+    "NOT"  shift, and go to state 6
+    ';'    shift, and go to state 7
+    '{'    shift, and go to state 8
+    '['    shift, and go to state 9
+    '('    shift, and go to state 10
+    '*'    shift, and go to state 11
+    '-'    shift, and go to state 12
+    '@'    shift, and go to state 13
+
+    start               go to state 14
+    lines               go to state 15
+    line                go to state 16
+    basic_operand       go to state 17
+    expr                go to state 18
+    assignment          go to state 19
+    argument_expansion  go to state 20
+    comparisons         go to state 21
+    containment         go to state 22
+    logical_xnor        go to state 23
+    logical_xor         go to state 24
+    logical_nor         go to state 25
+    logical_or          go to state 26
+    logical_nand        go to state 27
+    logical_and         go to state 28
+    logical_not         go to state 29
+    dots                go to state 30
+    add_sub             go to state 31
+    mul_div_mod         go to state 32
+    unary_negate        go to state 33
+    exponentiation      go to state 34
+    adjacent            go to state 35
+    pre_unary           go to state 36
+    post_unary          go to state 37
+    copy                go to state 38
+    call                go to state 39
+
+
+State 1
+
+    9 basic_operand: T_NUM •
+
+    $default  reduce using rule 9 (basic_operand)
+
+
+State 2
+
+   11 basic_operand: T_ID •
+
+    $default  reduce using rule 11 (basic_operand)
+
+
+State 3
+
+   10 basic_operand: T_STR •
+
+    $default  reduce using rule 10 (basic_operand)
+
+
+State 4
+
+   68 pre_unary: "++" • post_unary
+
+    T_NUM  shift, and go to state 1
+    T_ID   shift, and go to state 2
+    T_STR  shift, and go to state 3
+    '{'    shift, and go to state 8
+    '['    shift, and go to state 9
+    '('    shift, and go to state 10
+    '@'    shift, and go to state 13
+
+    basic_operand  go to state 17
+    post_unary     go to state 40
+    copy           go to state 38
+    call           go to state 39
+
+
+State 5
+
+   69 pre_unary: "--" • post_unary
+
+    T_NUM  shift, and go to state 1
+    T_ID   shift, and go to state 2
+    T_STR  shift, and go to state 3
+    '{'    shift, and go to state 8
+    '['    shift, and go to state 9
+    '('    shift, and go to state 10
+    '@'    shift, and go to state 13
+
+    basic_operand  go to state 17
+    post_unary     go to state 41
+    copy           go to state 38
+    call           go to state 39
+
+
+State 6
+
+   49 logical_not: "NOT" • dots
+
+    T_NUM  shift, and go to state 1
+    T_ID   shift, and go to state 2
+    T_STR  shift, and go to state 3
+    "++"   shift, and go to state 4
+    "--"   shift, and go to state 5
+    '{'    shift, and go to state 8
+    '['    shift, and go to state 9
+    '('    shift, and go to state 10
+    '-'    shift, and go to state 12
+    '@'    shift, and go to state 13
+
+    basic_operand   go to state 17
+    dots            go to state 42
+    add_sub         go to state 31
+    mul_div_mod     go to state 32
+    unary_negate    go to state 33
+    exponentiation  go to state 34
+    adjacent        go to state 35
+    pre_unary       go to state 36
+    post_unary      go to state 37
+    copy            go to state 38
+    call            go to state 39
+
+
+State 7
+
+    4 line: ';' •
+
+    $default  reduce using rule 4 (line)
+
+
+State 8
+
+   12 basic_operand: '{' • '}'
+   14              | '{' • $@1 lines '}'
+
+    '}'  shift, and go to state 43
+
+    $default  reduce using rule 13 ($@1)
+
+    $@1  go to state 44
+
+
+State 9
+
+   16 basic_operand: '[' • $@2 csv ']'
+
+    $default  reduce using rule 15 ($@2)
+
+    $@2  go to state 45
+
+
+State 10
+
+   17 basic_operand: '(' • expr ')'
+
+    T_NUM  shift, and go to state 1
+    T_ID   shift, and go to state 2
+    T_STR  shift, and go to state 3
+    "++"   shift, and go to state 4
+    "--"   shift, and go to state 5
+    "NOT"  shift, and go to state 6
+    '{'    shift, and go to state 8
+    '['    shift, and go to state 9
+    '('    shift, and go to state 10
+    '*'    shift, and go to state 11
+    '-'    shift, and go to state 12
+    '@'    shift, and go to state 13
+
+    basic_operand       go to state 17
+    expr                go to state 46
+    assignment          go to state 19
+    argument_expansion  go to state 20
+    comparisons         go to state 21
+    containment         go to state 22
+    logical_xnor        go to state 23
+    logical_xor         go to state 24
+    logical_nor         go to state 25
+    logical_or          go to state 26
+    logical_nand        go to state 27
+    logical_and         go to state 28
+    logical_not         go to state 29
+    dots                go to state 30
+    add_sub             go to state 31
+    mul_div_mod         go to state 32
+    unary_negate        go to state 33
+    exponentiation      go to state 34
+    adjacent            go to state 35
+    pre_unary           go to state 36
+    post_unary          go to state 37
+    copy                go to state 38
+    call                go to state 39
+
+
+State 11
+
+   24 argument_expansion: '*' • comparisons
+
+    T_NUM  shift, and go to state 1
+    T_ID   shift, and go to state 2
+    T_STR  shift, and go to state 3
+    "++"   shift, and go to state 4
+    "--"   shift, and go to state 5
+    "NOT"  shift, and go to state 6
+    '{'    shift, and go to state 8
+    '['    shift, and go to state 9
+    '('    shift, and go to state 10
+    '-'    shift, and go to state 12
+    '@'    shift, and go to state 13
+
+    basic_operand   go to state 17
+    comparisons     go to state 47
+    containment     go to state 22
+    logical_xnor    go to state 23
+    logical_xor     go to state 24
+    logical_nor     go to state 25
+    logical_or      go to state 26
+    logical_nand    go to state 27
+    logical_and     go to state 28
+    logical_not     go to state 29
+    dots            go to state 30
+    add_sub         go to state 31
+    mul_div_mod     go to state 32
+    unary_negate    go to state 33
+    exponentiation  go to state 34
+    adjacent        go to state 35
+    pre_unary       go to state 36
+    post_unary      go to state 37
+    copy            go to state 38
+    call            go to state 39
+
+
+State 12
+
+   61 unary_negate: '-' • exponentiation
+
+    T_NUM  shift, and go to state 1
+    T_ID   shift, and go to state 2
+    T_STR  shift, and go to state 3
+    "++"   shift, and go to state 4
+    "--"   shift, and go to state 5
+    '{'    shift, and go to state 8
+    '['    shift, and go to state 9
+    '('    shift, and go to state 10
+    '@'    shift, and go to state 13
+
+    basic_operand   go to state 17
+    exponentiation  go to state 48
+    adjacent        go to state 35
+    pre_unary       go to state 36
+    post_unary      go to state 37
+    copy            go to state 38
+    call            go to state 39
+
+
+State 13
+
+   75 copy: '@' • call
+
+    T_NUM  shift, and go to state 1
+    T_ID   shift, and go to state 2
+    T_STR  shift, and go to state 3
+    '{'    shift, and go to state 8
+    '['    shift, and go to state 9
+    '('    shift, and go to state 10
+
+    basic_operand  go to state 17
+    call           go to state 49
+
+
+State 14
+
+    0 $accept: start • $end
+
+    $end  shift, and go to state 50
+
+
+State 15
+
+    1 start: lines •
+
+    $default  reduce using rule 1 (start)
+
+
+State 16
+
+    2 lines: line •
+    3      | line • lines
+
+    T_NUM  shift, and go to state 1
+    T_ID   shift, and go to state 2
+    T_STR  shift, and go to state 3
+    "++"   shift, and go to state 4
+    "--"   shift, and go to state 5
+    "NOT"  shift, and go to state 6
+    ';'    shift, and go to state 7
+    '{'    shift, and go to state 8
+    '['    shift, and go to state 9
+    '('    shift, and go to state 10
+    '*'    shift, and go to state 11
+    '-'    shift, and go to state 12
+    '@'    shift, and go to state 13
+
+    $default  reduce using rule 2 (lines)
+
+    lines               go to state 51
+    line                go to state 16
+    basic_operand       go to state 17
+    expr                go to state 18
+    assignment          go to state 19
+    argument_expansion  go to state 20
+    comparisons         go to state 21
+    containment         go to state 22
+    logical_xnor        go to state 23
+    logical_xor         go to state 24
+    logical_nor         go to state 25
+    logical_or          go to state 26
+    logical_nand        go to state 27
+    logical_and         go to state 28
+    logical_not         go to state 29
+    dots                go to state 30
+    add_sub             go to state 31
+    mul_div_mod         go to state 32
+    unary_negate        go to state 33
+    exponentiation      go to state 34
+    adjacent            go to state 35
+    pre_unary           go to state 36
+    post_unary          go to state 37
+    copy                go to state 38
+    call                go to state 39
+
+
+State 17
+
+   18 basic_operand: basic_operand • '.' T_ID
+   76 call: basic_operand •
+   78     | basic_operand • '(' $@4 csv ')'
+
+    '('  shift, and go to state 52
+    '.'  shift, and go to state 53
+
+    $default  reduce using rule 76 (call)
+
+
+State 18
+
+    5 line: expr • ';'
+
+    ';'  shift, and go to state 54
+
+
+State 19
+
+   19 expr: assignment •
+
+    $default  reduce using rule 19 (expr)
+
+
+State 20
+
+   20 assignment: argument_expansion •
+   21           | argument_expansion • '=' assignment
+   22           | argument_expansion • ":=" assignment
+
+    ":="  shift, and go to state 55
+    '='   shift, and go to state 56
+
+    $default  reduce using rule 20 (assignment)
+
+
+State 21
+
+   23 argument_expansion: comparisons •
+   26 comparisons: comparisons • "===" containment
+   27            | comparisons • "!==" containment
+   28            | comparisons • "==" containment
+   29            | comparisons • "!=" containment
+   30            | comparisons • ">=" containment
+   31            | comparisons • "<=" containment
+   32            | comparisons • ">" containment
+   33            | comparisons • "<" containment
+
+    "==="  shift, and go to state 57
+    "!=="  shift, and go to state 58
+    "=="   shift, and go to state 59
+    "!="   shift, and go to state 60
+    ">="   shift, and go to state 61
+    "<="   shift, and go to state 62
+    ">"    shift, and go to state 63
+    "<"    shift, and go to state 64
+
+    $default  reduce using rule 23 (argument_expansion)
+
+
+State 22
+
+   25 comparisons: containment •
+   35 containment: containment • "IN" logical_xnor
+
+    "IN"  shift, and go to state 65
+
+    $default  reduce using rule 25 (comparisons)
+
+
+State 23
+
+   34 containment: logical_xnor •
+   37 logical_xnor: logical_xnor • "XNOR" logical_xor
+
+    "XNOR"  shift, and go to state 66
+
+    $default  reduce using rule 34 (containment)
+
+
+State 24
+
+   36 logical_xnor: logical_xor •
+   39 logical_xor: logical_xor • "XOR" logical_nor
+
+    "XOR"  shift, and go to state 67
+
+    $default  reduce using rule 36 (logical_xnor)
+
+
+State 25
+
+   38 logical_xor: logical_nor •
+   41 logical_nor: logical_nor • "NOR" logical_or
+
+    "NOR"  shift, and go to state 68
+
+    $default  reduce using rule 38 (logical_xor)
+
+
+State 26
+
+   40 logical_nor: logical_or •
+   43 logical_or: logical_or • "OR" logical_nand
+
+    "OR"  shift, and go to state 69
+
+    $default  reduce using rule 40 (logical_nor)
+
+
+State 27
+
+   42 logical_or: logical_nand •
+   45 logical_nand: logical_nand • "NAND" logical_and
+
+    "NAND"  shift, and go to state 70
+
+    $default  reduce using rule 42 (logical_or)
+
+
+State 28
+
+   44 logical_nand: logical_and •
+   47 logical_and: logical_and • "AND" logical_not
+
+    "AND"  shift, and go to state 71
+
+    $default  reduce using rule 44 (logical_nand)
+
+
+State 29
+
+   46 logical_and: logical_not •
+
+    $default  reduce using rule 46 (logical_and)
+
+
+State 30
+
+   48 logical_not: dots •
+   51 dots: dots • ".." add_sub
+   52     | dots • "..." add_sub
+
+    "..."  shift, and go to state 72
+    ".."   shift, and go to state 73
+
+    $default  reduce using rule 48 (logical_not)
+
+
+State 31
+
+   50 dots: add_sub •
+   54 add_sub: add_sub • '+' mul_div_mod
+   55        | add_sub • '-' mul_div_mod
+
+    '+'  shift, and go to state 74
+    '-'  shift, and go to state 75
+
+    $default  reduce using rule 50 (dots)
+
+
+State 32
+
+   53 add_sub: mul_div_mod •
+   57 mul_div_mod: mul_div_mod • '*' unary_negate
+   58            | mul_div_mod • '/' unary_negate
+   59            | mul_div_mod • '%' unary_negate
+
+    '*'  shift, and go to state 76
+    '/'  shift, and go to state 77
+    '%'  shift, and go to state 78
+
+    $default  reduce using rule 53 (add_sub)
+
+
+State 33
+
+   56 mul_div_mod: unary_negate •
+
+    $default  reduce using rule 56 (mul_div_mod)
+
+
+State 34
+
+   60 unary_negate: exponentiation •
+
+    $default  reduce using rule 60 (unary_negate)
+
+
+State 35
+
+   62 exponentiation: adjacent •
+   63               | adjacent • "**" exponentiation
+   66 adjacent: adjacent • "->" $@3 pre_unary
+
+    "**"  shift, and go to state 79
+    "->"  shift, and go to state 80
+
+    $default  reduce using rule 62 (exponentiation)
+
+
+State 36
+
+   64 adjacent: pre_unary •
+
+    $default  reduce using rule 64 (adjacent)
+
+
+State 37
+
+   67 pre_unary: post_unary •
+
+    $default  reduce using rule 67 (pre_unary)
+
+
+State 38
+
+   70 post_unary: copy •
+   71           | copy • "++"
+   72           | copy • "--"
+   73           | copy • "!"
+
+    "++"  shift, and go to state 81
+    "--"  shift, and go to state 82
+    "!"   shift, and go to state 83
+
+    $default  reduce using rule 70 (post_unary)
+
+
+State 39
+
+   74 copy: call •
+
+    $default  reduce using rule 74 (copy)
+
+
+State 40
+
+   68 pre_unary: "++" post_unary •
+
+    $default  reduce using rule 68 (pre_unary)
+
+
+State 41
+
+   69 pre_unary: "--" post_unary •
+
+    $default  reduce using rule 69 (pre_unary)
+
+
+State 42
+
+   49 logical_not: "NOT" dots •
+   51 dots: dots • ".." add_sub
+   52     | dots • "..." add_sub
+
+    "..."  shift, and go to state 72
+    ".."   shift, and go to state 73
+
+    $default  reduce using rule 49 (logical_not)
+
+
+State 43
+
+   12 basic_operand: '{' '}' •
+
+    $default  reduce using rule 12 (basic_operand)
+
+
+State 44
+
+   14 basic_operand: '{' $@1 • lines '}'
+
+    T_NUM  shift, and go to state 1
+    T_ID   shift, and go to state 2
+    T_STR  shift, and go to state 3
+    "++"   shift, and go to state 4
+    "--"   shift, and go to state 5
+    "NOT"  shift, and go to state 6
+    ';'    shift, and go to state 7
+    '{'    shift, and go to state 8
+    '['    shift, and go to state 9
+    '('    shift, and go to state 10
+    '*'    shift, and go to state 11
+    '-'    shift, and go to state 12
+    '@'    shift, and go to state 13
+
+    lines               go to state 84
+    line                go to state 16
+    basic_operand       go to state 17
+    expr                go to state 18
+    assignment          go to state 19
+    argument_expansion  go to state 20
+    comparisons         go to state 21
+    containment         go to state 22
+    logical_xnor        go to state 23
+    logical_xor         go to state 24
+    logical_nor         go to state 25
+    logical_or          go to state 26
+    logical_nand        go to state 27
+    logical_and         go to state 28
+    logical_not         go to state 29
+    dots                go to state 30
+    add_sub             go to state 31
+    mul_div_mod         go to state 32
+    unary_negate        go to state 33
+    exponentiation      go to state 34
+    adjacent            go to state 35
+    pre_unary           go to state 36
+    post_unary          go to state 37
+    copy                go to state 38
+    call                go to state 39
+
+
+State 45
+
+   16 basic_operand: '[' $@2 • csv ']'
+
+    T_NUM  shift, and go to state 1
+    T_ID   shift, and go to state 2
+    T_STR  shift, and go to state 3
+    "++"   shift, and go to state 4
+    "--"   shift, and go to state 5
+    "NOT"  shift, and go to state 6
+    '{'    shift, and go to state 8
+    '['    shift, and go to state 9
+    '('    shift, and go to state 10
+    '*'    shift, and go to state 11
+    '-'    shift, and go to state 12
+    '@'    shift, and go to state 13
+
+    $default  reduce using rule 6 (csv)
+
+    csv                 go to state 85
+    basic_operand       go to state 17
+    expr                go to state 86
+    assignment          go to state 19
+    argument_expansion  go to state 20
+    comparisons         go to state 21
+    containment         go to state 22
+    logical_xnor        go to state 23
+    logical_xor         go to state 24
+    logical_nor         go to state 25
+    logical_or          go to state 26
+    logical_nand        go to state 27
+    logical_and         go to state 28
+    logical_not         go to state 29
+    dots                go to state 30
+    add_sub             go to state 31
+    mul_div_mod         go to state 32
+    unary_negate        go to state 33
+    exponentiation      go to state 34
+    adjacent            go to state 35
+    pre_unary           go to state 36
+    post_unary          go to state 37
+    copy                go to state 38
+    call                go to state 39
+
+
+State 46
+
+   17 basic_operand: '(' expr • ')'
+
+    ')'  shift, and go to state 87
+
+
+State 47
+
+   24 argument_expansion: '*' comparisons •
+   26 comparisons: comparisons • "===" containment
+   27            | comparisons • "!==" containment
+   28            | comparisons • "==" containment
+   29            | comparisons • "!=" containment
+   30            | comparisons • ">=" containment
+   31            | comparisons • "<=" containment
+   32            | comparisons • ">" containment
+   33            | comparisons • "<" containment
+
+    "==="  shift, and go to state 57
+    "!=="  shift, and go to state 58
+    "=="   shift, and go to state 59
+    "!="   shift, and go to state 60
+    ">="   shift, and go to state 61
+    "<="   shift, and go to state 62
+    ">"    shift, and go to state 63
+    "<"    shift, and go to state 64
+
+    $default  reduce using rule 24 (argument_expansion)
+
+
+State 48
+
+   61 unary_negate: '-' exponentiation •
+
+    $default  reduce using rule 61 (unary_negate)
+
+
+State 49
+
+   75 copy: '@' call •
+
+    $default  reduce using rule 75 (copy)
+
+
+State 50
+
+    0 $accept: start $end •
+
+    $default  accept
+
+
+State 51
+
+    3 lines: line lines •
+
+    $default  reduce using rule 3 (lines)
+
+
+State 52
+
+   78 call: basic_operand '(' • $@4 csv ')'
+
+    $default  reduce using rule 77 ($@4)
+
+    $@4  go to state 88
+
+
+State 53
+
+   18 basic_operand: basic_operand '.' • T_ID
+
+    T_ID  shift, and go to state 89
+
+
+State 54
+
+    5 line: expr ';' •
+
+    $default  reduce using rule 5 (line)
+
+
+State 55
+
+   22 assignment: argument_expansion ":=" • assignment
+
+    T_NUM  shift, and go to state 1
+    T_ID   shift, and go to state 2
+    T_STR  shift, and go to state 3
+    "++"   shift, and go to state 4
+    "--"   shift, and go to state 5
+    "NOT"  shift, and go to state 6
+    '{'    shift, and go to state 8
+    '['    shift, and go to state 9
+    '('    shift, and go to state 10
+    '*'    shift, and go to state 11
+    '-'    shift, and go to state 12
+    '@'    shift, and go to state 13
+
+    basic_operand       go to state 17
+    assignment          go to state 90
+    argument_expansion  go to state 20
+    comparisons         go to state 21
+    containment         go to state 22
+    logical_xnor        go to state 23
+    logical_xor         go to state 24
+    logical_nor         go to state 25
+    logical_or          go to state 26
+    logical_nand        go to state 27
+    logical_and         go to state 28
+    logical_not         go to state 29
+    dots                go to state 30
+    add_sub             go to state 31
+    mul_div_mod         go to state 32
+    unary_negate        go to state 33
+    exponentiation      go to state 34
+    adjacent            go to state 35
+    pre_unary           go to state 36
+    post_unary          go to state 37
+    copy                go to state 38
+    call                go to state 39
+
+
+State 56
+
+   21 assignment: argument_expansion '=' • assignment
+
+    T_NUM  shift, and go to state 1
+    T_ID   shift, and go to state 2
+    T_STR  shift, and go to state 3
+    "++"   shift, and go to state 4
+    "--"   shift, and go to state 5
+    "NOT"  shift, and go to state 6
+    '{'    shift, and go to state 8
+    '['    shift, and go to state 9
+    '('    shift, and go to state 10
+    '*'    shift, and go to state 11
+    '-'    shift, and go to state 12
+    '@'    shift, and go to state 13
+
+    basic_operand       go to state 17
+    assignment          go to state 91
+    argument_expansion  go to state 20
+    comparisons         go to state 21
+    containment         go to state 22
+    logical_xnor        go to state 23
+    logical_xor         go to state 24
+    logical_nor         go to state 25
+    logical_or          go to state 26
+    logical_nand        go to state 27
+    logical_and         go to state 28
+    logical_not         go to state 29
+    dots                go to state 30
+    add_sub             go to state 31
+    mul_div_mod         go to state 32
+    unary_negate        go to state 33
+    exponentiation      go to state 34
+    adjacent            go to state 35
+    pre_unary           go to state 36
+    post_unary          go to state 37
+    copy                go to state 38
+    call                go to state 39
+
+
+State 57
+
+   26 comparisons: comparisons "===" • containment
+
+    T_NUM  shift, and go to state 1
+    T_ID   shift, and go to state 2
+    T_STR  shift, and go to state 3
+    "++"   shift, and go to state 4
+    "--"   shift, and go to state 5
+    "NOT"  shift, and go to state 6
+    '{'    shift, and go to state 8
+    '['    shift, and go to state 9
+    '('    shift, and go to state 10
+    '-'    shift, and go to state 12
+    '@'    shift, and go to state 13
+
+    basic_operand   go to state 17
+    containment     go to state 92
+    logical_xnor    go to state 23
+    logical_xor     go to state 24
+    logical_nor     go to state 25
+    logical_or      go to state 26
+    logical_nand    go to state 27
+    logical_and     go to state 28
+    logical_not     go to state 29
+    dots            go to state 30
+    add_sub         go to state 31
+    mul_div_mod     go to state 32
+    unary_negate    go to state 33
+    exponentiation  go to state 34
+    adjacent        go to state 35
+    pre_unary       go to state 36
+    post_unary      go to state 37
+    copy            go to state 38
+    call            go to state 39
+
+
+State 58
+
+   27 comparisons: comparisons "!==" • containment
+
+    T_NUM  shift, and go to state 1
+    T_ID   shift, and go to state 2
+    T_STR  shift, and go to state 3
+    "++"   shift, and go to state 4
+    "--"   shift, and go to state 5
+    "NOT"  shift, and go to state 6
+    '{'    shift, and go to state 8
+    '['    shift, and go to state 9
+    '('    shift, and go to state 10
+    '-'    shift, and go to state 12
+    '@'    shift, and go to state 13
+
+    basic_operand   go to state 17
+    containment     go to state 93
+    logical_xnor    go to state 23
+    logical_xor     go to state 24
+    logical_nor     go to state 25
+    logical_or      go to state 26
+    logical_nand    go to state 27
+    logical_and     go to state 28
+    logical_not     go to state 29
+    dots            go to state 30
+    add_sub         go to state 31
+    mul_div_mod     go to state 32
+    unary_negate    go to state 33
+    exponentiation  go to state 34
+    adjacent        go to state 35
+    pre_unary       go to state 36
+    post_unary      go to state 37
+    copy            go to state 38
+    call            go to state 39
+
+
+State 59
+
+   28 comparisons: comparisons "==" • containment
+
+    T_NUM  shift, and go to state 1
+    T_ID   shift, and go to state 2
+    T_STR  shift, and go to state 3
+    "++"   shift, and go to state 4
+    "--"   shift, and go to state 5
+    "NOT"  shift, and go to state 6
+    '{'    shift, and go to state 8
+    '['    shift, and go to state 9
+    '('    shift, and go to state 10
+    '-'    shift, and go to state 12
+    '@'    shift, and go to state 13
+
+    basic_operand   go to state 17
+    containment     go to state 94
+    logical_xnor    go to state 23
+    logical_xor     go to state 24
+    logical_nor     go to state 25
+    logical_or      go to state 26
+    logical_nand    go to state 27
+    logical_and     go to state 28
+    logical_not     go to state 29
+    dots            go to state 30
+    add_sub         go to state 31
+    mul_div_mod     go to state 32
+    unary_negate    go to state 33
+    exponentiation  go to state 34
+    adjacent        go to state 35
+    pre_unary       go to state 36
+    post_unary      go to state 37
+    copy            go to state 38
+    call            go to state 39
+
+
+State 60
+
+   29 comparisons: comparisons "!=" • containment
+
+    T_NUM  shift, and go to state 1
+    T_ID   shift, and go to state 2
+    T_STR  shift, and go to state 3
+    "++"   shift, and go to state 4
+    "--"   shift, and go to state 5
+    "NOT"  shift, and go to state 6
+    '{'    shift, and go to state 8
+    '['    shift, and go to state 9
+    '('    shift, and go to state 10
+    '-'    shift, and go to state 12
+    '@'    shift, and go to state 13
+
+    basic_operand   go to state 17
+    containment     go to state 95
+    logical_xnor    go to state 23
+    logical_xor     go to state 24
+    logical_nor     go to state 25
+    logical_or      go to state 26
+    logical_nand    go to state 27
+    logical_and     go to state 28
+    logical_not     go to state 29
+    dots            go to state 30
+    add_sub         go to state 31
+    mul_div_mod     go to state 32
+    unary_negate    go to state 33
+    exponentiation  go to state 34
+    adjacent        go to state 35
+    pre_unary       go to state 36
+    post_unary      go to state 37
+    copy            go to state 38
+    call            go to state 39
+
+
+State 61
+
+   30 comparisons: comparisons ">=" • containment
+
+    T_NUM  shift, and go to state 1
+    T_ID   shift, and go to state 2
+    T_STR  shift, and go to state 3
+    "++"   shift, and go to state 4
+    "--"   shift, and go to state 5
+    "NOT"  shift, and go to state 6
+    '{'    shift, and go to state 8
+    '['    shift, and go to state 9
+    '('    shift, and go to state 10
+    '-'    shift, and go to state 12
+    '@'    shift, and go to state 13
+
+    basic_operand   go to state 17
+    containment     go to state 96
+    logical_xnor    go to state 23
+    logical_xor     go to state 24
+    logical_nor     go to state 25
+    logical_or      go to state 26
+    logical_nand    go to state 27
+    logical_and     go to state 28
+    logical_not     go to state 29
+    dots            go to state 30
+    add_sub         go to state 31
+    mul_div_mod     go to state 32
+    unary_negate    go to state 33
+    exponentiation  go to state 34
+    adjacent        go to state 35
+    pre_unary       go to state 36
+    post_unary      go to state 37
+    copy            go to state 38
+    call            go to state 39
+
+
+State 62
+
+   31 comparisons: comparisons "<=" • containment
+
+    T_NUM  shift, and go to state 1
+    T_ID   shift, and go to state 2
+    T_STR  shift, and go to state 3
+    "++"   shift, and go to state 4
+    "--"   shift, and go to state 5
+    "NOT"  shift, and go to state 6
+    '{'    shift, and go to state 8
+    '['    shift, and go to state 9
+    '('    shift, and go to state 10
+    '-'    shift, and go to state 12
+    '@'    shift, and go to state 13
+
+    basic_operand   go to state 17
+    containment     go to state 97
+    logical_xnor    go to state 23
+    logical_xor     go to state 24
+    logical_nor     go to state 25
+    logical_or      go to state 26
+    logical_nand    go to state 27
+    logical_and     go to state 28
+    logical_not     go to state 29
+    dots            go to state 30
+    add_sub         go to state 31
+    mul_div_mod     go to state 32
+    unary_negate    go to state 33
+    exponentiation  go to state 34
+    adjacent        go to state 35
+    pre_unary       go to state 36
+    post_unary      go to state 37
+    copy            go to state 38
+    call            go to state 39
+
+
+State 63
+
+   32 comparisons: comparisons ">" • containment
+
+    T_NUM  shift, and go to state 1
+    T_ID   shift, and go to state 2
+    T_STR  shift, and go to state 3
+    "++"   shift, and go to state 4
+    "--"   shift, and go to state 5
+    "NOT"  shift, and go to state 6
+    '{'    shift, and go to state 8
+    '['    shift, and go to state 9
+    '('    shift, and go to state 10
+    '-'    shift, and go to state 12
+    '@'    shift, and go to state 13
+
+    basic_operand   go to state 17
+    containment     go to state 98
+    logical_xnor    go to state 23
+    logical_xor     go to state 24
+    logical_nor     go to state 25
+    logical_or      go to state 26
+    logical_nand    go to state 27
+    logical_and     go to state 28
+    logical_not     go to state 29
+    dots            go to state 30
+    add_sub         go to state 31
+    mul_div_mod     go to state 32
+    unary_negate    go to state 33
+    exponentiation  go to state 34
+    adjacent        go to state 35
+    pre_unary       go to state 36
+    post_unary      go to state 37
+    copy            go to state 38
+    call            go to state 39
+
+
+State 64
+
+   33 comparisons: comparisons "<" • containment
+
+    T_NUM  shift, and go to state 1
+    T_ID   shift, and go to state 2
+    T_STR  shift, and go to state 3
+    "++"   shift, and go to state 4
+    "--"   shift, and go to state 5
+    "NOT"  shift, and go to state 6
+    '{'    shift, and go to state 8
+    '['    shift, and go to state 9
+    '('    shift, and go to state 10
+    '-'    shift, and go to state 12
+    '@'    shift, and go to state 13
+
+    basic_operand   go to state 17
+    containment     go to state 99
+    logical_xnor    go to state 23
+    logical_xor     go to state 24
+    logical_nor     go to state 25
+    logical_or      go to state 26
+    logical_nand    go to state 27
+    logical_and     go to state 28
+    logical_not     go to state 29
+    dots            go to state 30
+    add_sub         go to state 31
+    mul_div_mod     go to state 32
+    unary_negate    go to state 33
+    exponentiation  go to state 34
+    adjacent        go to state 35
+    pre_unary       go to state 36
+    post_unary      go to state 37
+    copy            go to state 38
+    call            go to state 39
+
+
+State 65
+
+   35 containment: containment "IN" • logical_xnor
+
+    T_NUM  shift, and go to state 1
+    T_ID   shift, and go to state 2
+    T_STR  shift, and go to state 3
+    "++"   shift, and go to state 4
+    "--"   shift, and go to state 5
+    "NOT"  shift, and go to state 6
+    '{'    shift, and go to state 8
+    '['    shift, and go to state 9
+    '('    shift, and go to state 10
+    '-'    shift, and go to state 12
+    '@'    shift, and go to state 13
+
+    basic_operand   go to state 17
+    logical_xnor    go to state 100
+    logical_xor     go to state 24
+    logical_nor     go to state 25
+    logical_or      go to state 26
+    logical_nand    go to state 27
+    logical_and     go to state 28
+    logical_not     go to state 29
+    dots            go to state 30
+    add_sub         go to state 31
+    mul_div_mod     go to state 32
+    unary_negate    go to state 33
+    exponentiation  go to state 34
+    adjacent        go to state 35
+    pre_unary       go to state 36
+    post_unary      go to state 37
+    copy            go to state 38
+    call            go to state 39
+
+
+State 66
+
+   37 logical_xnor: logical_xnor "XNOR" • logical_xor
+
+    T_NUM  shift, and go to state 1
+    T_ID   shift, and go to state 2
+    T_STR  shift, and go to state 3
+    "++"   shift, and go to state 4
+    "--"   shift, and go to state 5
+    "NOT"  shift, and go to state 6
+    '{'    shift, and go to state 8
+    '['    shift, and go to state 9
+    '('    shift, and go to state 10
+    '-'    shift, and go to state 12
+    '@'    shift, and go to state 13
+
+    basic_operand   go to state 17
+    logical_xor     go to state 101
+    logical_nor     go to state 25
+    logical_or      go to state 26
+    logical_nand    go to state 27
+    logical_and     go to state 28
+    logical_not     go to state 29
+    dots            go to state 30
+    add_sub         go to state 31
+    mul_div_mod     go to state 32
+    unary_negate    go to state 33
+    exponentiation  go to state 34
+    adjacent        go to state 35
+    pre_unary       go to state 36
+    post_unary      go to state 37
+    copy            go to state 38
+    call            go to state 39
+
+
+State 67
+
+   39 logical_xor: logical_xor "XOR" • logical_nor
+
+    T_NUM  shift, and go to state 1
+    T_ID   shift, and go to state 2
+    T_STR  shift, and go to state 3
+    "++"   shift, and go to state 4
+    "--"   shift, and go to state 5
+    "NOT"  shift, and go to state 6
+    '{'    shift, and go to state 8
+    '['    shift, and go to state 9
+    '('    shift, and go to state 10
+    '-'    shift, and go to state 12
+    '@'    shift, and go to state 13
+
+    basic_operand   go to state 17
+    logical_nor     go to state 102
+    logical_or      go to state 26
+    logical_nand    go to state 27
+    logical_and     go to state 28
+    logical_not     go to state 29
+    dots            go to state 30
+    add_sub         go to state 31
+    mul_div_mod     go to state 32
+    unary_negate    go to state 33
+    exponentiation  go to state 34
+    adjacent        go to state 35
+    pre_unary       go to state 36
+    post_unary      go to state 37
+    copy            go to state 38
+    call            go to state 39
+
+
+State 68
+
+   41 logical_nor: logical_nor "NOR" • logical_or
+
+    T_NUM  shift, and go to state 1
+    T_ID   shift, and go to state 2
+    T_STR  shift, and go to state 3
+    "++"   shift, and go to state 4
+    "--"   shift, and go to state 5
+    "NOT"  shift, and go to state 6
+    '{'    shift, and go to state 8
+    '['    shift, and go to state 9
+    '('    shift, and go to state 10
+    '-'    shift, and go to state 12
+    '@'    shift, and go to state 13
+
+    basic_operand   go to state 17
+    logical_or      go to state 103
+    logical_nand    go to state 27
+    logical_and     go to state 28
+    logical_not     go to state 29
+    dots            go to state 30
+    add_sub         go to state 31
+    mul_div_mod     go to state 32
+    unary_negate    go to state 33
+    exponentiation  go to state 34
+    adjacent        go to state 35
+    pre_unary       go to state 36
+    post_unary      go to state 37
+    copy            go to state 38
+    call            go to state 39
+
+
+State 69
+
+   43 logical_or: logical_or "OR" • logical_nand
+
+    T_NUM  shift, and go to state 1
+    T_ID   shift, and go to state 2
+    T_STR  shift, and go to state 3
+    "++"   shift, and go to state 4
+    "--"   shift, and go to state 5
+    "NOT"  shift, and go to state 6
+    '{'    shift, and go to state 8
+    '['    shift, and go to state 9
+    '('    shift, and go to state 10
+    '-'    shift, and go to state 12
+    '@'    shift, and go to state 13
+
+    basic_operand   go to state 17
+    logical_nand    go to state 104
+    logical_and     go to state 28
+    logical_not     go to state 29
+    dots            go to state 30
+    add_sub         go to state 31
+    mul_div_mod     go to state 32
+    unary_negate    go to state 33
+    exponentiation  go to state 34
+    adjacent        go to state 35
+    pre_unary       go to state 36
+    post_unary      go to state 37
+    copy            go to state 38
+    call            go to state 39
+
+
+State 70
+
+   45 logical_nand: logical_nand "NAND" • logical_and
+
+    T_NUM  shift, and go to state 1
+    T_ID   shift, and go to state 2
+    T_STR  shift, and go to state 3
+    "++"   shift, and go to state 4
+    "--"   shift, and go to state 5
+    "NOT"  shift, and go to state 6
+    '{'    shift, and go to state 8
+    '['    shift, and go to state 9
+    '('    shift, and go to state 10
+    '-'    shift, and go to state 12
+    '@'    shift, and go to state 13
+
+    basic_operand   go to state 17
+    logical_and     go to state 105
+    logical_not     go to state 29
+    dots            go to state 30
+    add_sub         go to state 31
+    mul_div_mod     go to state 32
+    unary_negate    go to state 33
+    exponentiation  go to state 34
+    adjacent        go to state 35
+    pre_unary       go to state 36
+    post_unary      go to state 37
+    copy            go to state 38
+    call            go to state 39
+
+
+State 71
+
+   47 logical_and: logical_and "AND" • logical_not
+
+    T_NUM  shift, and go to state 1
+    T_ID   shift, and go to state 2
+    T_STR  shift, and go to state 3
+    "++"   shift, and go to state 4
+    "--"   shift, and go to state 5
+    "NOT"  shift, and go to state 6
+    '{'    shift, and go to state 8
+    '['    shift, and go to state 9
+    '('    shift, and go to state 10
+    '-'    shift, and go to state 12
+    '@'    shift, and go to state 13
+
+    basic_operand   go to state 17
+    logical_not     go to state 106
+    dots            go to state 30
+    add_sub         go to state 31
+    mul_div_mod     go to state 32
+    unary_negate    go to state 33
+    exponentiation  go to state 34
+    adjacent        go to state 35
+    pre_unary       go to state 36
+    post_unary      go to state 37
+    copy            go to state 38
+    call            go to state 39
+
+
+State 72
+
+   52 dots: dots "..." • add_sub
+
+    T_NUM  shift, and go to state 1
+    T_ID   shift, and go to state 2
+    T_STR  shift, and go to state 3
+    "++"   shift, and go to state 4
+    "--"   shift, and go to state 5
+    '{'    shift, and go to state 8
+    '['    shift, and go to state 9
+    '('    shift, and go to state 10
+    '-'    shift, and go to state 12
+    '@'    shift, and go to state 13
+
+    basic_operand   go to state 17
+    add_sub         go to state 107
+    mul_div_mod     go to state 32
+    unary_negate    go to state 33
+    exponentiation  go to state 34
+    adjacent        go to state 35
+    pre_unary       go to state 36
+    post_unary      go to state 37
+    copy            go to state 38
+    call            go to state 39
+
+
+State 73
+
+   51 dots: dots ".." • add_sub
+
+    T_NUM  shift, and go to state 1
+    T_ID   shift, and go to state 2
+    T_STR  shift, and go to state 3
+    "++"   shift, and go to state 4
+    "--"   shift, and go to state 5
+    '{'    shift, and go to state 8
+    '['    shift, and go to state 9
+    '('    shift, and go to state 10
+    '-'    shift, and go to state 12
+    '@'    shift, and go to state 13
+
+    basic_operand   go to state 17
+    add_sub         go to state 108
+    mul_div_mod     go to state 32
+    unary_negate    go to state 33
+    exponentiation  go to state 34
+    adjacent        go to state 35
+    pre_unary       go to state 36
+    post_unary      go to state 37
+    copy            go to state 38
+    call            go to state 39
+
+
+State 74
+
+   54 add_sub: add_sub '+' • mul_div_mod
+
+    T_NUM  shift, and go to state 1
+    T_ID   shift, and go to state 2
+    T_STR  shift, and go to state 3
+    "++"   shift, and go to state 4
+    "--"   shift, and go to state 5
+    '{'    shift, and go to state 8
+    '['    shift, and go to state 9
+    '('    shift, and go to state 10
+    '-'    shift, and go to state 12
+    '@'    shift, and go to state 13
+
+    basic_operand   go to state 17
+    mul_div_mod     go to state 109
+    unary_negate    go to state 33
+    exponentiation  go to state 34
+    adjacent        go to state 35
+    pre_unary       go to state 36
+    post_unary      go to state 37
+    copy            go to state 38
+    call            go to state 39
+
+
+State 75
+
+   55 add_sub: add_sub '-' • mul_div_mod
+
+    T_NUM  shift, and go to state 1
+    T_ID   shift, and go to state 2
+    T_STR  shift, and go to state 3
+    "++"   shift, and go to state 4
+    "--"   shift, and go to state 5
+    '{'    shift, and go to state 8
+    '['    shift, and go to state 9
+    '('    shift, and go to state 10
+    '-'    shift, and go to state 12
+    '@'    shift, and go to state 13
+
+    basic_operand   go to state 17
+    mul_div_mod     go to state 110
+    unary_negate    go to state 33
+    exponentiation  go to state 34
+    adjacent        go to state 35
+    pre_unary       go to state 36
+    post_unary      go to state 37
+    copy            go to state 38
+    call            go to state 39
+
+
+State 76
+
+   57 mul_div_mod: mul_div_mod '*' • unary_negate
+
+    T_NUM  shift, and go to state 1
+    T_ID   shift, and go to state 2
+    T_STR  shift, and go to state 3
+    "++"   shift, and go to state 4
+    "--"   shift, and go to state 5
+    '{'    shift, and go to state 8
+    '['    shift, and go to state 9
+    '('    shift, and go to state 10
+    '-'    shift, and go to state 12
+    '@'    shift, and go to state 13
+
+    basic_operand   go to state 17
+    unary_negate    go to state 111
+    exponentiation  go to state 34
+    adjacent        go to state 35
+    pre_unary       go to state 36
+    post_unary      go to state 37
+    copy            go to state 38
+    call            go to state 39
+
+
+State 77
+
+   58 mul_div_mod: mul_div_mod '/' • unary_negate
+
+    T_NUM  shift, and go to state 1
+    T_ID   shift, and go to state 2
+    T_STR  shift, and go to state 3
+    "++"   shift, and go to state 4
+    "--"   shift, and go to state 5
+    '{'    shift, and go to state 8
+    '['    shift, and go to state 9
+    '('    shift, and go to state 10
+    '-'    shift, and go to state 12
+    '@'    shift, and go to state 13
+
+    basic_operand   go to state 17
+    unary_negate    go to state 112
+    exponentiation  go to state 34
+    adjacent        go to state 35
+    pre_unary       go to state 36
+    post_unary      go to state 37
+    copy            go to state 38
+    call            go to state 39
+
+
+State 78
+
+   59 mul_div_mod: mul_div_mod '%' • unary_negate
+
+    T_NUM  shift, and go to state 1
+    T_ID   shift, and go to state 2
+    T_STR  shift, and go to state 3
+    "++"   shift, and go to state 4
+    "--"   shift, and go to state 5
+    '{'    shift, and go to state 8
+    '['    shift, and go to state 9
+    '('    shift, and go to state 10
+    '-'    shift, and go to state 12
+    '@'    shift, and go to state 13
+
+    basic_operand   go to state 17
+    unary_negate    go to state 113
+    exponentiation  go to state 34
+    adjacent        go to state 35
+    pre_unary       go to state 36
+    post_unary      go to state 37
+    copy            go to state 38
+    call            go to state 39
+
+
+State 79
+
+   63 exponentiation: adjacent "**" • exponentiation
+
+    T_NUM  shift, and go to state 1
+    T_ID   shift, and go to state 2
+    T_STR  shift, and go to state 3
+    "++"   shift, and go to state 4
+    "--"   shift, and go to state 5
+    '{'    shift, and go to state 8
+    '['    shift, and go to state 9
+    '('    shift, and go to state 10
+    '@'    shift, and go to state 13
+
+    basic_operand   go to state 17
+    exponentiation  go to state 114
+    adjacent        go to state 35
+    pre_unary       go to state 36
+    post_unary      go to state 37
+    copy            go to state 38
+    call            go to state 39
+
+
+State 80
+
+   66 adjacent: adjacent "->" • $@3 pre_unary
+
+    $default  reduce using rule 65 ($@3)
+
+    $@3  go to state 115
+
+
+State 81
+
+   71 post_unary: copy "++" •
+
+    $default  reduce using rule 71 (post_unary)
+
+
+State 82
+
+   72 post_unary: copy "--" •
+
+    $default  reduce using rule 72 (post_unary)
+
+
+State 83
+
+   73 post_unary: copy "!" •
+
+    $default  reduce using rule 73 (post_unary)
+
+
+State 84
+
+   14 basic_operand: '{' $@1 lines • '}'
+
+    '}'  shift, and go to state 116
+
+
+State 85
+
+    8 csv: csv • ',' expr
+   16 basic_operand: '[' $@2 csv • ']'
+
+    ','  shift, and go to state 117
+    ']'  shift, and go to state 118
+
+
+State 86
+
+    7 csv: expr •
+
+    $default  reduce using rule 7 (csv)
+
+
+State 87
+
+   17 basic_operand: '(' expr ')' •
+
+    $default  reduce using rule 17 (basic_operand)
+
+
+State 88
+
+   78 call: basic_operand '(' $@4 • csv ')'
+
+    T_NUM  shift, and go to state 1
+    T_ID   shift, and go to state 2
+    T_STR  shift, and go to state 3
+    "++"   shift, and go to state 4
+    "--"   shift, and go to state 5
+    "NOT"  shift, and go to state 6
+    '{'    shift, and go to state 8
+    '['    shift, and go to state 9
+    '('    shift, and go to state 10
+    '*'    shift, and go to state 11
+    '-'    shift, and go to state 12
+    '@'    shift, and go to state 13
+
+    $default  reduce using rule 6 (csv)
+
+    csv                 go to state 119
+    basic_operand       go to state 17
+    expr                go to state 86
+    assignment          go to state 19
+    argument_expansion  go to state 20
+    comparisons         go to state 21
+    containment         go to state 22
+    logical_xnor        go to state 23
+    logical_xor         go to state 24
+    logical_nor         go to state 25
+    logical_or          go to state 26
+    logical_nand        go to state 27
+    logical_and         go to state 28
+    logical_not         go to state 29
+    dots                go to state 30
+    add_sub             go to state 31
+    mul_div_mod         go to state 32
+    unary_negate        go to state 33
+    exponentiation      go to state 34
+    adjacent            go to state 35
+    pre_unary           go to state 36
+    post_unary          go to state 37
+    copy                go to state 38
+    call                go to state 39
+
+
+State 89
+
+   18 basic_operand: basic_operand '.' T_ID •
+
+    $default  reduce using rule 18 (basic_operand)
+
+
+State 90
+
+   22 assignment: argument_expansion ":=" assignment •
+
+    $default  reduce using rule 22 (assignment)
+
+
+State 91
+
+   21 assignment: argument_expansion '=' assignment •
+
+    $default  reduce using rule 21 (assignment)
+
+
+State 92
+
+   26 comparisons: comparisons "===" containment •
+   35 containment: containment • "IN" logical_xnor
+
+    "IN"  shift, and go to state 65
+
+    $default  reduce using rule 26 (comparisons)
+
+
+State 93
+
+   27 comparisons: comparisons "!==" containment •
+   35 containment: containment • "IN" logical_xnor
+
+    "IN"  shift, and go to state 65
+
+    $default  reduce using rule 27 (comparisons)
+
+
+State 94
+
+   28 comparisons: comparisons "==" containment •
+   35 containment: containment • "IN" logical_xnor
+
+    "IN"  shift, and go to state 65
+
+    $default  reduce using rule 28 (comparisons)
+
+
+State 95
+
+   29 comparisons: comparisons "!=" containment •
+   35 containment: containment • "IN" logical_xnor
+
+    "IN"  shift, and go to state 65
+
+    $default  reduce using rule 29 (comparisons)
+
+
+State 96
+
+   30 comparisons: comparisons ">=" containment •
+   35 containment: containment • "IN" logical_xnor
+
+    "IN"  shift, and go to state 65
+
+    $default  reduce using rule 30 (comparisons)
+
+
+State 97
+
+   31 comparisons: comparisons "<=" containment •
+   35 containment: containment • "IN" logical_xnor
+
+    "IN"  shift, and go to state 65
+
+    $default  reduce using rule 31 (comparisons)
+
+
+State 98
+
+   32 comparisons: comparisons ">" containment •
+   35 containment: containment • "IN" logical_xnor
+
+    "IN"  shift, and go to state 65
+
+    $default  reduce using rule 32 (comparisons)
+
+
+State 99
+
+   33 comparisons: comparisons "<" containment •
+   35 containment: containment • "IN" logical_xnor
+
+    "IN"  shift, and go to state 65
+
+    $default  reduce using rule 33 (comparisons)
+
+
+State 100
+
+   35 containment: containment "IN" logical_xnor •
+   37 logical_xnor: logical_xnor • "XNOR" logical_xor
+
+    "XNOR"  shift, and go to state 66
+
+    $default  reduce using rule 35 (containment)
+
+
+State 101
+
+   37 logical_xnor: logical_xnor "XNOR" logical_xor •
+   39 logical_xor: logical_xor • "XOR" logical_nor
+
+    "XOR"  shift, and go to state 67
+
+    $default  reduce using rule 37 (logical_xnor)
+
+
+State 102
+
+   39 logical_xor: logical_xor "XOR" logical_nor •
+   41 logical_nor: logical_nor • "NOR" logical_or
+
+    "NOR"  shift, and go to state 68
+
+    $default  reduce using rule 39 (logical_xor)
+
+
+State 103
+
+   41 logical_nor: logical_nor "NOR" logical_or •
+   43 logical_or: logical_or • "OR" logical_nand
+
+    "OR"  shift, and go to state 69
+
+    $default  reduce using rule 41 (logical_nor)
+
+
+State 104
+
+   43 logical_or: logical_or "OR" logical_nand •
+   45 logical_nand: logical_nand • "NAND" logical_and
+
+    "NAND"  shift, and go to state 70
+
+    $default  reduce using rule 43 (logical_or)
+
+
+State 105
+
+   45 logical_nand: logical_nand "NAND" logical_and •
+   47 logical_and: logical_and • "AND" logical_not
+
+    "AND"  shift, and go to state 71
+
+    $default  reduce using rule 45 (logical_nand)
+
+
+State 106
+
+   47 logical_and: logical_and "AND" logical_not •
+
+    $default  reduce using rule 47 (logical_and)
+
+
+State 107
+
+   52 dots: dots "..." add_sub •
+   54 add_sub: add_sub • '+' mul_div_mod
+   55        | add_sub • '-' mul_div_mod
+
+    '+'  shift, and go to state 74
+    '-'  shift, and go to state 75
+
+    $default  reduce using rule 52 (dots)
+
+
+State 108
+
+   51 dots: dots ".." add_sub •
+   54 add_sub: add_sub • '+' mul_div_mod
+   55        | add_sub • '-' mul_div_mod
+
+    '+'  shift, and go to state 74
+    '-'  shift, and go to state 75
+
+    $default  reduce using rule 51 (dots)
+
+
+State 109
+
+   54 add_sub: add_sub '+' mul_div_mod •
+   57 mul_div_mod: mul_div_mod • '*' unary_negate
+   58            | mul_div_mod • '/' unary_negate
+   59            | mul_div_mod • '%' unary_negate
+
+    '*'  shift, and go to state 76
+    '/'  shift, and go to state 77
+    '%'  shift, and go to state 78
+
+    $default  reduce using rule 54 (add_sub)
+
+
+State 110
+
+   55 add_sub: add_sub '-' mul_div_mod •
+   57 mul_div_mod: mul_div_mod • '*' unary_negate
+   58            | mul_div_mod • '/' unary_negate
+   59            | mul_div_mod • '%' unary_negate
+
+    '*'  shift, and go to state 76
+    '/'  shift, and go to state 77
+    '%'  shift, and go to state 78
+
+    $default  reduce using rule 55 (add_sub)
+
+
+State 111
+
+   57 mul_div_mod: mul_div_mod '*' unary_negate •
+
+    $default  reduce using rule 57 (mul_div_mod)
+
+
+State 112
+
+   58 mul_div_mod: mul_div_mod '/' unary_negate •
+
+    $default  reduce using rule 58 (mul_div_mod)
+
+
+State 113
+
+   59 mul_div_mod: mul_div_mod '%' unary_negate •
+
+    $default  reduce using rule 59 (mul_div_mod)
+
+
+State 114
+
+   63 exponentiation: adjacent "**" exponentiation •
+
+    $default  reduce using rule 63 (exponentiation)
+
+
+State 115
+
+   66 adjacent: adjacent "->" $@3 • pre_unary
+
+    T_NUM  shift, and go to state 1
+    T_ID   shift, and go to state 2
+    T_STR  shift, and go to state 3
+    "++"   shift, and go to state 4
+    "--"   shift, and go to state 5
+    '{'    shift, and go to state 8
+    '['    shift, and go to state 9
+    '('    shift, and go to state 10
+    '@'    shift, and go to state 13
+
+    basic_operand  go to state 17
+    pre_unary      go to state 120
+    post_unary     go to state 37
+    copy           go to state 38
+    call           go to state 39
+
+
+State 116
+
+   14 basic_operand: '{' $@1 lines '}' •
+
+    $default  reduce using rule 14 (basic_operand)
+
+
+State 117
+
+    8 csv: csv ',' • expr
+
+    T_NUM  shift, and go to state 1
+    T_ID   shift, and go to state 2
+    T_STR  shift, and go to state 3
+    "++"   shift, and go to state 4
+    "--"   shift, and go to state 5
+    "NOT"  shift, and go to state 6
+    '{'    shift, and go to state 8
+    '['    shift, and go to state 9
+    '('    shift, and go to state 10
+    '*'    shift, and go to state 11
+    '-'    shift, and go to state 12
+    '@'    shift, and go to state 13
+
+    basic_operand       go to state 17
+    expr                go to state 121
+    assignment          go to state 19
+    argument_expansion  go to state 20
+    comparisons         go to state 21
+    containment         go to state 22
+    logical_xnor        go to state 23
+    logical_xor         go to state 24
+    logical_nor         go to state 25
+    logical_or          go to state 26
+    logical_nand        go to state 27
+    logical_and         go to state 28
+    logical_not         go to state 29
+    dots                go to state 30
+    add_sub             go to state 31
+    mul_div_mod         go to state 32
+    unary_negate        go to state 33
+    exponentiation      go to state 34
+    adjacent            go to state 35
+    pre_unary           go to state 36
+    post_unary          go to state 37
+    copy                go to state 38
+    call                go to state 39
+
+
+State 118
+
+   16 basic_operand: '[' $@2 csv ']' •
+
+    $default  reduce using rule 16 (basic_operand)
+
+
+State 119
+
+    8 csv: csv • ',' expr
+   78 call: basic_operand '(' $@4 csv • ')'
+
+    ','  shift, and go to state 117
+    ')'  shift, and go to state 122
+
+
+State 120
+
+   66 adjacent: adjacent "->" $@3 pre_unary •
+
+    $default  reduce using rule 66 (adjacent)
+
+
+State 121
+
+    8 csv: csv ',' expr •
+
+    $default  reduce using rule 8 (csv)
+
+
+State 122
+
+   78 call: basic_operand '(' $@4 csv ')' •
+
+    $default  reduce using rule 78 (call)
