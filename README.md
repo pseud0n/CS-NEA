@@ -18,6 +18,6 @@ Required programs (names given are for Nix):
  - `boost`: C++ Boost libraries (if not available through PM, download files and add -Ipath/to/boost in clang++/g++ commands)
 
 Recommended (not required so don't stress):
- - hexyl: Hexyl, a hex file reader
- - neovim: Neovim (nvim), use coc.vim for .ccls to work
+ - `hexyl`: Hexyl, a hex file reader
+ - `neovim`: Neovim (nvim), use coc.vim for .ccls to work
 
