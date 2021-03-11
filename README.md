@@ -15,9 +15,9 @@ Required programs (names given are for Nix):
  - bash_5/bash: Bash 5.1.4
  - gnumake/make: Gnu Make 4.3 (Make if not available on PM, CMake not required)
  - find: Find
+ - boost: C++ Boost libraries (if not available through PM, download files and add -Ipath/to/boost in clang++/g++ commands)
 
-Recommended (not required but some utility scripts use them):
+Recommended (not required so don't stress):
  - hexyl: Hexyl, a hex file reader
  - neovim: Neovim (nvim), use coc.vim for .ccls to work
- - fish: Friendly Interactive SHell, although all .sh files use bash
 
