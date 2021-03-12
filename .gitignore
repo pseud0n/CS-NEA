@@ -1,5 +1,5 @@
-*.exe
-*.o
-**/Debug
-**/.settings
-.cproject
+*.out
+bytecode/generator/lex.yy.c
+bytecode/generator/calc.tab.c
+bytecode/generator/calc.tab.h
+bytecode/generator/calc.output
