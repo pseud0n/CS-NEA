@@ -1,0 +1,79 @@
+class = Class(
+	Class,
+	'cm1' : Fn('class') -> { print('Class method 1') }
+)(
+	'sm1' : Fn() -> { print('Static method 1') }
+	'im1' : Fn('self') -> { print('Instance method 1') }
+)
+
+instance = Class()
+
+# instance methods
+instance.im1()
+class.im1(instance) #
+# Inaccessible from the metaclass
+
+# class methods
+instance::cm1() # instance.type().cm1()
+class.cm1() # = class.type().cm1(class)
+class::cm1(class) # class.type().cm1(class)
+
+# static methods
+instance::sm1() # instance.type().sm1()
+class.sm1() # = class.type().cm1() = class.cm1()
+# Inaccessible from the metaclass
+
+Instance methods are static methods belonging to a class that, when called 
+
+Class methods are instance methods belonging to the metaclass.
+They are not accessible to the instance directly, which only looks at itself and its type (+superclasses)
+
+
+
+c = Class(
+    'getattr': Fn('self', 'name') {
+        print('Getting', name)
+        return Object.getattr(self, name)
+    }
+)
+
+object.member(*args)
+
+Check for 'getattr' in the object & its superclasses (and pass as object.member(*args))
+Check for 'getatrr' in the object's type and their superclasses (and pass as object.type().member(object, *args))
+
+Object.getattr states that an name should be searched for in this same way.
+
+'mro' is an instance method belonging to 'Class', AKA a class method from the perspective of classes
+
+
+classA = Class(
+	Class,
+	'aVar': 10,
+	'aFunc': Fn('class') { print(class.aVar) }
+)(
+	Init = Fn('self', 'val') {
+		self.iVar = val
+	}
+)
+
+classB = classA.type(
+	# 'Inherits' class methods from  classA
+)(
+	# No relation to classA's instance methods
+	Init = Fn('self') {
+		self.iVar = 999
+	}
+)
+
+classC = Class(
+	Class,
+	'bVar': 10,
+	'bFunc': Fn('class') { print(class.bVar) }
+	# meta class is independent from other classes
+)(
+	classA
+	# inherits instance methods
+)
+
+I'll try forking happiness to make my own

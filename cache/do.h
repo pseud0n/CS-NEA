@@ -1,15 +1,24 @@
-#ifndef PRE_DECL_H_
-#define PRE_DECL_H_
+#ifdef DO_CACHE_DECL // Whether caching should take place
 
-//auto blank_function = new UL::CppFunction({}, false, DY_LMBD { return new UL::Object(nullptr); });
+#ifndef CACHE_DO_H
+#define CACHE_DO_H
 
-#define MIN_CACHED_VALUE -5
-#define MAX_CACHED_VALUE 10
+using std::clog;
 
-std::array<OPTR, 1 + MAX_CACHED_VALUE - MIN_CACHED_VALUE> cached_numbers;
+//clog.setstate(std::ios_base::failbit);
 
-for (int i = MIN_CACHED_VALUE; i <= MAX_CACHED_VALUE; ++i)
-	cached_numbers[i - MIN_CACHED_VALUE].create_from_blank(i);
+//auto blank_function = new CppFunction({}, false, DY_LMBD { return new Object(nullptr); });
+
+clog << "Caching integers\n";
+
+for (int i = MIN_CACHED_INTEGER_VALUE; i <= MAX_CACHED_INTEGER_VALUE; ++i) {
+	
+	Cache::numbers[i - MIN_CACHED_INTEGER_VALUE] = new InternalObject<Aliases::NumT>(Aliases::NumT(i));
+}
+
+//clog.clear();
+
+clog << "Cached integers in range " << MIN_CACHED_INTEGER_VALUE << " to " << MAX_CACHED_INTEGER_VALUE << " inclusive\n";
 
 /*
 
@@ -28,5 +37,11 @@ It can be guaranteed that the other object will not be implicitly deleted before
 
 When passed by reference using `Object::make_reference()`, the resulting pointer preserves strength.
 */
+
+#else
+// If CACHE_DO_H already defined - this header 
+#error Cannot cache more than once
+
+#endif
 
 #endif

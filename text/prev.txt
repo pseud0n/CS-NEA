@@ -6,7 +6,7 @@
  * Hello, world!
  */
 
-#include <iostream> //cout
+#include <iostream> //clog
 #include <unordered_map> //unordered_map
 #include <vector> //vector
 #include <string> //string
@@ -17,7 +17,7 @@
 #include <sstream> //stringstream
 #include <array> //array
 
-#define SEP std::cout << "--------------\n"
+#define SEP std::clog << "--------------\n"
 #define DY_FN [](std::vector<Object&> args)
 #define UL_RET(x) [](){return x;} //Implicitly converts to return type UL::Object
 #define UL_LMBD [](std::vector<UL::Intermediary&> arguments_input, UL::Arguments& arguments_data)
@@ -101,14 +101,14 @@ namespace UL {
 		/*
 		Arguments(size_t m_a, std::vector<Object> o_d, bool i_v)
 			: min_args(m_a), optional_defaults(o_d), is_variadic(i_v) {
-			std::cout << "  In Arguments constructor body\n";
+			std::clog << "  In Arguments constructor body\n";
 				optional_length = optional_defaults.size();
 		}
 		*/
 
 		/*
 		Arguments(size_t min_args, std::vector<std::function<WrappedUnionObject()> optional_defaults, bool is_variadic) {
-			std::cout << "  In Arguments constructor body\n";
+			std::clog << "  In Arguments constructor body\n";
 			this->min_args = min_args;
 			this->optional_defaults = optional_defaults;
 			this->is_variadic = is_variadic;
@@ -174,7 +174,7 @@ namespace UL {
 		std::function<void(std::vector<UL::Intermediary&>, UL::Arguments&)> lambda_object;
 		FunctionWrapper(Arguments arguments, std::function<void(std::vector<UL::Intermediary&>, UL::Arguments&)>& lambda)
 			: argument_object(arguments), lambda_object(lambda) {
-			std::cout << "Constructing FunctionWrapper object " << this << "\n";
+			std::clog << "Constructing FunctionWrapper object " << this << "\n";
 		}
 	};
 
@@ -192,35 +192,35 @@ namespace UL {
 
 		Intermediary(const char* string)
 			: type(Builtins::string) {
-			std::cout << "Constructing string WUO " << this << "\n";
+			std::clog << "Constructing string WUO " << this << "\n";
 			union_storage.string_val = new char[strlen(string) + 1]; //Allocate correct number of bytes + 1 (null terminator)
 			strcpy(union_storage.string_val, string); //Copy `const char*` to `char*`
 		}
 
 		Intermediary(double x)
 			: type(Builtins::number) {
-			std::cout << "Constructing numerical WUO " << this << "(" << x << ")\n";
+			std::clog << "Constructing numerical WUO " << this << "(" << x << ")\n";
 			union_storage.numerical_val = new double(x);
 		}
 
 		Intermediary(FunctionWrapper function_data) //Includes a function and the types of arguments added
 			: type(Builtins::function) {
-			std::cout << "Constructing function WUO " << this << "\n";
+			std::clog << "Constructing function WUO " << this << "\n";
 			*union_storage.argument_info = function_data;
 
 		}
 
 		Intermediary(std::initializer_list<Intermediary> beil)
 			: type(Builtins::list) {
-			std::cout << "Constructing vector WUO " << this << "\n";
-			//for(auto it : beil) std::cout << it.union_storage.numerical_val << "\n";
+			std::clog << "Constructing vector WUO " << this << "\n";
+			//for(auto it : beil) std::clog << it.union_storage.numerical_val << "\n";
 			union_storage.list_val = new std::vector<Intermediary>(); //brace-enclosed initialiser list
 			*union_storage.list_val = beil; //Heap-allocated!!!!
 		}
 
 		Intermediary(const Intermediary& from)
 			: type(from.type) {
-			std::cout << "Copying WUO " << &from << " to " << this << "\n";
+			std::clog << "Copying WUO " << &from << " to " << this << "\n";
 			//TODO Fix copying of a list
 			switch(type) {
 				case Builtins::number:
@@ -255,7 +255,7 @@ namespace UL {
 						break;
 				}
 			}
-			std::cout << "Destructed WUO " << this << "\n";
+			std::clog << "Destructed WUO " << this << "\n";
 		}
 
 		void convert(void* target_ptr, char symbol, unsigned short array_depth) {
@@ -264,7 +264,7 @@ namespace UL {
 			 * It is guarunteed that target_ptr can be converted to the target type
 			 * E.g. target_ptr may also be an int pointer and therefore can have its value modified to an integer safely
 			 */
-			std::cout << "Converting " << target_ptr << " -> " << symbol << "\n";
+			std::clog << "Converting " << target_ptr << " -> " << symbol << "\n";
 			switch(symbol) {
 				case 'i':
 					*(int*)target_ptr = (int)*union_storage.numerical_val;
@@ -272,12 +272,12 @@ namespace UL {
 					//Explicit conversion added for clarity but not required
 					//Copies ptr but stops the ptr from being deleted when object deleted
 					no_delete_ptr = true;
-					std::cout << "  " << *(int*)target_ptr << "\n";
+					std::clog << "  " << *(int*)target_ptr << "\n";
 					break;
 				case 'd':
 					*(double*)target_ptr = *union_storage.numerical_val;
 					no_delete_ptr = true;
-					std::cout << "  " << *(double*)target_ptr << "\n";
+					std::clog << "  " << *(double*)target_ptr << "\n";
 					break;
 				case 'o':
 					//(Object)(*target_ptr) =
@@ -326,22 +326,22 @@ namespace UL {
 
 		Location()
 			: reference_count(1) {
-			std::cout << "NEWREF " << this << "\n";
+			std::clog << "NEWREF " << this << "\n";
 			instances.insert(this);
 		}
 		~Location() {
-			std::cout << "DELREF " << this << "\n";
+			std::clog << "DELREF " << this << "\n";
 			instances.erase(this);
 		}
 
 		void operator ++() {
 			reference_count++;
-			std::cout << "INCREF " << this << " to " << reference_count <<"\n";
+			std::clog << "INCREF " << this << " to " << reference_count <<"\n";
 		}
 
 		void operator --() {
 			reference_count--;
-			std::cout << "DECREF " << this << " to " << reference_count <<"\n";
+			std::clog << "DECREF " << this << " to " << reference_count <<"\n";
 			/*
 			if (reference_count == 0) delete this; //Can I do this?
 			 */
@@ -380,13 +380,13 @@ namespace UL {
 			Other built-in types may access its `primitive_storage` but user-defined types may only intereact with its interface
 			 */
 			: type(Builtins::number), location_reference(new Location), is_weak_reference(is_weak_reference) {
-			std::cout << "Constructed " << this << "\n";
+			std::clog << "Constructed " << this << "\n";
 			union_storage.numerical_val = new double(x);
 		}
 
 		Object(std::string string, bool is_weak_reference = false)
 			: type(Builtins::string), location_reference(new Location), is_weak_reference(is_weak_reference) {
-			std::cout << "Constructed " << this << "\n";
+			std::clog << "Constructed " << this << "\n";
 			union_storage.string_val = new char[string.length() + 1]; //Allocate correct number of bytes + 1 (null terminator)
 			strcpy(union_storage.string_val, string.c_str()); //Copy `const char*` returned from `string.c_str()` to `char*`
 		}
@@ -398,7 +398,7 @@ namespace UL {
 			E.g. does not change `union_stores_string_val` depending on value of `type`
 			 */
 			: type(type), location_reference(new Location), is_weak_reference(is_weak_reference) {
-			std::cout << "Constructed " << this << "\n";
+			std::clog << "Constructed " << this << "\n";
 		}
 
 		Object(Arguments arguments_data, std::function<Object(std::vector<Intermediary&>, Arguments&)>, bool is_weak_reference = false)
@@ -416,7 +416,7 @@ namespace UL {
 		The copy constructor creates a new object but also increments the references to what it copies.
 		 */
 			: type(from.type), location_reference(from.location_reference), is_weak_reference(force_weak || from.is_weak_reference) {
-			std::cout << "Copied " << this << "\n";
+			std::clog << "Copied " << this << "\n";
 			if (type == Builtins::number) //If values are equal, 0 is returned
 				union_storage.numerical_val = from.union_storage.numerical_val;
 				//Exactly the same object is stored, since only the pointer is copied
@@ -427,7 +427,7 @@ namespace UL {
 		}
 
 		~Object() {
-			std::cout << "Deleted " << this << "\n";
+			std::clog << "Deleted " << this << "\n";
 			if (!is_weak_reference) {
 				--*location_reference;
 				if (location_reference->reference_count == 0) {
@@ -549,11 +549,11 @@ namespace UL {
 
 	int parse_assign(std::vector<Intermediary*> arguments_input, std::string parse_this, std::vector<std::function<Intermediary()> > default_options, std::vector<void*> variables, void* variadic_var=nullptr) {
 		Arguments arguments_data(parse_this, default_options);
-		//std::cout << (variadic_var != nullptr) << "," << arguments_data.is_variadic << "\n";
+		//std::clog << (variadic_var != nullptr) << "," << arguments_data.is_variadic << "\n";
 		if (variables.size() < arguments_data.min_args || (!arguments_data.is_variadic && variables.size() > arguments_data.min_args + arguments_data.optional_length))
 			return false;
 		if ((!arguments_data.is_variadic) && arguments_input.size() > arguments_data.min_args + arguments_data.optional_length) {
-			//std::cout << arguments_input.size() << "," << arguments_data.min_args << ", " << arguments_data.optional_length << "\n";
+			//std::clog << arguments_input.size() << "," << arguments_data.min_args << ", " << arguments_data.optional_length << "\n";
 			return false;
 		}
 		if ((!variadic_var) == arguments_data.is_variadic) //If a pointer has been given for extra arguments, it must be a variadic function and vice versa
@@ -563,9 +563,9 @@ namespace UL {
 		if (arguments_input.size() < arguments_data.min_args + arguments_data.optional_length) {
 			for (; i < arguments_input.size(); i++)
 				arguments_input[i]->convert(variables[i], arguments_data.types[i], arguments_data.array_depths[i]);
-			//std::cout << "Made it here: " << i << "\n";
+			//std::clog << "Made it here: " << i << "\n";
 			for (; i < arguments_data.min_args + arguments_data.optional_length; i++) {
-				//std::cout << (i - arguments_data.min_args) << "\n";
+				//std::clog << (i - arguments_data.min_args) << "\n";
 				default_options[i - arguments_data.min_args]().convert(variables[i], arguments_data.types[i],  arguments_data.array_depths[i]);
 			}
 		} else {
@@ -577,7 +577,7 @@ namespace UL {
 
 }
 int main() {
-	std::cout << __cplusplus << "\n";
+	std::clog << __cplusplus << "\n";
 	SEP;
 	/*
 	UL::Object ten(10); //NEWREF
@@ -586,20 +586,20 @@ int main() {
 	SEP;
 	UL::Object three(3); //NEWREF
 	SEP;
-	std::cout << ten << ", " << also_ten << ", " << three << "\n";
+	std::clog << ten << ", " << also_ten << ", " << three << "\n";
 	SEP;
 	//UL::Object thirty = ten * three;
 	//SEP;
-	std::cout << ten * three << "\n";
+	std::clog << ten * three << "\n";
 	SEP;
-	std::cout << UL::Location::show_instances() << "\n";
+	std::clog << UL::Location::show_instances() << "\n";
 	SEP;
 	*/
 
 	//UL::Arguments arguments = {3, {5, 6, 7, 8}, false};
-	//std::cout << arguments.min_args << "\n";
-	//std::cout << arguments.optional_length << "\n";
-	//std::cout << arguments.is_variadic << "\n";
+	//std::clog << arguments.min_args << "\n";
+	//std::clog << arguments.optional_length << "\n";
+	//std::clog << arguments.is_variadic << "\n";
 
 	/*
 	UL::Object({3, {5,6}, false}, [](std::vector<UL::Object&> arguments_input, UL::Arguments& arguments_data){
@@ -631,22 +631,22 @@ int main() {
 	*/
 	/*
 	UL::Arguments args("iii;dd;", {UL_RET(5), UL_RET(6)});
-	std::cout << args.min_args << ", " << args.optional_length << "\n";
+	std::clog << args.min_args << ", " << args.optional_length << "\n";
 	int a, b, c;
 	double d, e, mean;
 	UL::Intermediary w = 99, x = 11.5, y = 3.5, z = 8;
-	std::cout << UL::parse_assign({&w, &x, &y, &z}, "iii;dd;", {UL_RET(5), UL_RET(6)}, {&a, &b, &c, &d, &e}, nullptr) << "\n";
+	std::clog << UL::parse_assign({&w, &x, &y, &z}, "iii;dd;", {UL_RET(5), UL_RET(6)}, {&a, &b, &c, &d, &e}, nullptr) << "\n";
 	mean = (d + e) / 2 + a + b + c;
-	std::cout << mean << "\n";
+	std::clog << mean << "\n";
 	*/
 	{
 		//UL::Intermediary object({1,{2, 3, {4, 5}, 6, 7}, 8});
 		UL::Intermediary function(UL::FunctionWrapper({"iii;dd;", {UL_RET(5), UL_RET(6)}}, UL_LMBD{}));
 		SEP;
-		std::cout << function << "\n";
+		std::clog << function << "\n";
 		SEP;
 	}
 	SEP;
-	//std::cout << "SUCCESS :))))))))))))))))))))))))\n";
+	//std::clog << "SUCCESS :))))))))))))))))))))))))\n";
 	return 0;
 }
