@@ -120,11 +120,14 @@
 #define CHANGE_NAME(character) full_directory[DIR_LEN_FULL + 1] = character;
 #define FOPEN(identifier) \
 	/* printf("Opening " #identifier " %s\n", full_directory); */ \
-	identifier##_file_ptr = fopen(full_directory, "ab+"); \
+	identifier##_file_ptr = fopen(full_directory, "ab+");
+#define FOPEN_EXIT(identifier) \
+	FOPEN(identifier) \
 	if (identifier##_file_ptr == NULL) { \
-		fprintf(stderr, "Could not create file %s", #identifier "_file_ptr"); \
+		fprintf(stderr, "Could not create file %s", #identifier "_file_ptr\n"); \
 		close_all(); \
 		clean_up(); \
+		return -1; \
 	}
 	//printf("Opened file " #identifier "_file_ptr successfully!\n");
 
@@ -280,10 +283,11 @@
 void clean_up() {
 	printf("Cleaning up files; error in bytecode generator\n");
 	close_all();
-	system("rm -fr ..");
+	system("rm *.bin"); // Deletes all 5 files; *.bin is just in case!
+	system("rmdir .."); // Delete now-empty folder
 }
 
-#line 287 "calc.tab.c"
+#line 291 "calc.tab.c"
 
 # ifndef YY_CAST
 #  ifdef __cplusplus
@@ -762,14 +766,14 @@ static const yytype_int8 yytranslate[] =
   /* YYRLINE[YYN] -- Source line where rule number YYN was defined.  */
 static const yytype_int16 yyrline[] =
 {
-       0,   248,   248,   252,   253,   256,   257,   261,   262,   263,
-     267,   268,   269,   270,   271,   271,   275,   275,   277,   278,
-     282,   286,   287,   288,   291,   292,   296,   297,   298,   299,
-     300,   301,   302,   303,   304,   308,   309,   313,   314,   317,
-     318,   322,   323,   327,   328,   332,   333,   338,   339,   343,
-     344,   348,   349,   350,   354,   355,   356,   360,   361,   362,
-     363,   366,   367,   371,   372,   376,   377,   377,   382,   383,
-     384,   388,   389,   390,   391,   395,   396,   400,   401,   401
+       0,   252,   252,   256,   257,   260,   261,   265,   266,   267,
+     271,   272,   273,   274,   275,   275,   279,   279,   281,   282,
+     286,   290,   291,   292,   295,   296,   300,   301,   302,   303,
+     304,   305,   306,   307,   308,   312,   313,   317,   318,   321,
+     322,   326,   327,   331,   332,   336,   337,   342,   343,   347,
+     348,   352,   353,   354,   358,   359,   360,   364,   365,   366,
+     367,   370,   371,   375,   376,   380,   381,   381,   386,   387,
+     388,   392,   393,   394,   395,   399,   400,   404,   405,   405
 };
 #endif
 
@@ -1804,301 +1808,301 @@ yyreduce:
   switch (yyn)
     {
   case 5: /* line: ';'  */
-#line 256 "calc.y"
+#line 260 "calc.y"
                                                                                 { add_instruction(I_NOP), add_instruction(I_END_EXP); }
-#line 1810 "calc.tab.c"
+#line 1814 "calc.tab.c"
     break;
 
   case 6: /* line: expr ';'  */
-#line 257 "calc.y"
+#line 261 "calc.y"
                                                                         { add_instruction(I_END_EXP); }
-#line 1816 "calc.tab.c"
+#line 1820 "calc.tab.c"
     break;
 
   case 10: /* basic_operand: T_NUM  */
-#line 267 "calc.y"
+#line 271 "calc.y"
                                                                         { add_number(yylval);  }
-#line 1822 "calc.tab.c"
+#line 1826 "calc.tab.c"
     break;
 
   case 11: /* basic_operand: T_STR  */
-#line 268 "calc.y"
+#line 272 "calc.y"
                                                                         { add_string(yylval); }
-#line 1828 "calc.tab.c"
+#line 1832 "calc.tab.c"
     break;
 
   case 12: /* basic_operand: T_ID  */
-#line 269 "calc.y"
+#line 273 "calc.y"
                                                                         { add_id(yylval);  }
-#line 1834 "calc.tab.c"
+#line 1838 "calc.tab.c"
     break;
 
   case 13: /* basic_operand: '{' '}'  */
-#line 270 "calc.y"
+#line 274 "calc.y"
                                                                         { add_instruction(I_MARK_CODE); add_instruction(I_NOP); add_instruction(I_MAKE_CODE); }
-#line 1840 "calc.tab.c"
+#line 1844 "calc.tab.c"
     break;
 
   case 14: /* $@1: %empty  */
-#line 271 "calc.y"
+#line 275 "calc.y"
                                                                                 { add_instruction(I_MARK_CODE);  }
-#line 1846 "calc.tab.c"
+#line 1850 "calc.tab.c"
     break;
 
   case 15: /* basic_operand: '{' $@1 lines '}'  */
-#line 272 "calc.y"
+#line 276 "calc.y"
                                                                         { add_instruction(I_MAKE_CODE);  }
-#line 1852 "calc.tab.c"
+#line 1856 "calc.tab.c"
     break;
 
   case 16: /* $@2: %empty  */
-#line 275 "calc.y"
+#line 279 "calc.y"
                                                                                 { add_instruction(I_MARK_LIST);  }
-#line 1858 "calc.tab.c"
+#line 1862 "calc.tab.c"
     break;
 
   case 17: /* basic_operand: '[' $@2 csv ']'  */
-#line 276 "calc.y"
+#line 280 "calc.y"
                                                                         { add_instruction(I_MAKE_LIST);  }
-#line 1864 "calc.tab.c"
+#line 1868 "calc.tab.c"
     break;
 
   case 19: /* basic_operand: basic_operand '.' T_ID  */
-#line 278 "calc.y"
+#line 282 "calc.y"
                                                                         { add_attr(yylval); }
-#line 1870 "calc.tab.c"
+#line 1874 "calc.tab.c"
     break;
 
   case 22: /* assignment: argument_expansion '=' assignment  */
-#line 287 "calc.y"
+#line 291 "calc.y"
                                                 { add_instruction(I_ASSIGN);  }
-#line 1876 "calc.tab.c"
+#line 1880 "calc.tab.c"
     break;
 
   case 23: /* assignment: argument_expansion ":=" assignment  */
-#line 288 "calc.y"
+#line 292 "calc.y"
                                                 { add_instruction(I_LET);  }
-#line 1882 "calc.tab.c"
+#line 1886 "calc.tab.c"
     break;
 
   case 25: /* argument_expansion: '*' comparisons  */
-#line 292 "calc.y"
+#line 296 "calc.y"
                                                                         { add_operator("*", '0');  }
-#line 1888 "calc.tab.c"
+#line 1892 "calc.tab.c"
     break;
 
   case 27: /* comparisons: comparisons "===" containment  */
-#line 297 "calc.y"
+#line 301 "calc.y"
                                                 { add_operator("===", '2');  }
-#line 1894 "calc.tab.c"
+#line 1898 "calc.tab.c"
     break;
 
   case 28: /* comparisons: comparisons "!==" containment  */
-#line 298 "calc.y"
+#line 302 "calc.y"
                                                 { add_operator("!==", '2');  }
-#line 1900 "calc.tab.c"
+#line 1904 "calc.tab.c"
     break;
 
   case 29: /* comparisons: comparisons "==" containment  */
-#line 299 "calc.y"
+#line 303 "calc.y"
                                                 { add_operator("==", '2');  }
-#line 1906 "calc.tab.c"
+#line 1910 "calc.tab.c"
     break;
 
   case 30: /* comparisons: comparisons "!=" containment  */
-#line 300 "calc.y"
+#line 304 "calc.y"
                                                 { add_operator("!=", '2');  }
-#line 1912 "calc.tab.c"
+#line 1916 "calc.tab.c"
     break;
 
   case 31: /* comparisons: comparisons ">=" containment  */
-#line 301 "calc.y"
+#line 305 "calc.y"
                                                 { add_operator(">=", '2');  }
-#line 1918 "calc.tab.c"
+#line 1922 "calc.tab.c"
     break;
 
   case 32: /* comparisons: comparisons "<=" containment  */
-#line 302 "calc.y"
+#line 306 "calc.y"
                                                 { add_operator("<=", '2');  }
-#line 1924 "calc.tab.c"
+#line 1928 "calc.tab.c"
     break;
 
   case 33: /* comparisons: comparisons ">" containment  */
-#line 303 "calc.y"
+#line 307 "calc.y"
                                                         { add_operator(">", '2');  }
-#line 1930 "calc.tab.c"
+#line 1934 "calc.tab.c"
     break;
 
   case 34: /* comparisons: comparisons "<" containment  */
-#line 304 "calc.y"
+#line 308 "calc.y"
                                                         { add_operator("<", '2');  }
-#line 1936 "calc.tab.c"
+#line 1940 "calc.tab.c"
     break;
 
   case 36: /* containment: containment "IN" logical_xnor  */
-#line 309 "calc.y"
+#line 313 "calc.y"
                                                 { add_operator("IN", '2'); }
-#line 1942 "calc.tab.c"
+#line 1946 "calc.tab.c"
     break;
 
   case 38: /* logical_xnor: logical_xnor "XNOR" logical_xor  */
-#line 314 "calc.y"
+#line 318 "calc.y"
                                                 { add_operator("XNOR", '2'); }
-#line 1948 "calc.tab.c"
+#line 1952 "calc.tab.c"
     break;
 
   case 40: /* logical_xor: logical_xor "XOR" logical_nor  */
-#line 318 "calc.y"
+#line 322 "calc.y"
                                                 { add_operator("XOR", '2'); }
-#line 1954 "calc.tab.c"
+#line 1958 "calc.tab.c"
     break;
 
   case 42: /* logical_nor: logical_nor "NOR" logical_or  */
-#line 323 "calc.y"
+#line 327 "calc.y"
                                                 { add_operator("NOR", '2'); }
-#line 1960 "calc.tab.c"
+#line 1964 "calc.tab.c"
     break;
 
   case 44: /* logical_or: logical_or "OR" logical_nand  */
-#line 328 "calc.y"
+#line 332 "calc.y"
                                                 { add_operator("OR", '2'); }
-#line 1966 "calc.tab.c"
+#line 1970 "calc.tab.c"
     break;
 
   case 46: /* logical_nand: logical_nand "NAND" logical_and  */
-#line 333 "calc.y"
+#line 337 "calc.y"
                                                 { add_operator("NAND", '2'); }
-#line 1972 "calc.tab.c"
+#line 1976 "calc.tab.c"
     break;
 
   case 48: /* logical_and: logical_and "AND" logical_not  */
-#line 339 "calc.y"
+#line 343 "calc.y"
                                                 { add_operator("AND", '2');  }
-#line 1978 "calc.tab.c"
+#line 1982 "calc.tab.c"
     break;
 
   case 50: /* logical_not: "NOT" dots  */
-#line 344 "calc.y"
+#line 348 "calc.y"
                                                                         { add_operator("NOT", '0');  }
-#line 1984 "calc.tab.c"
+#line 1988 "calc.tab.c"
     break;
 
   case 52: /* dots: dots ".." add_sub  */
-#line 349 "calc.y"
+#line 353 "calc.y"
                                                                 { add_operator("..", '2'); }
-#line 1990 "calc.tab.c"
+#line 1994 "calc.tab.c"
     break;
 
   case 53: /* dots: dots "..." add_sub  */
-#line 350 "calc.y"
+#line 354 "calc.y"
                                                                 { add_operator("...", '2'); }
-#line 1996 "calc.tab.c"
+#line 2000 "calc.tab.c"
     break;
 
   case 55: /* add_sub: add_sub '+' mul_div_mod  */
-#line 355 "calc.y"
+#line 359 "calc.y"
                                                         { add_operator("+", '2'); }
-#line 2002 "calc.tab.c"
+#line 2006 "calc.tab.c"
     break;
 
   case 56: /* add_sub: add_sub '-' mul_div_mod  */
-#line 356 "calc.y"
+#line 360 "calc.y"
                                                         { add_operator("-", '2'); }
-#line 2008 "calc.tab.c"
+#line 2012 "calc.tab.c"
     break;
 
   case 58: /* mul_div_mod: mul_div_mod '*' unary_negate  */
-#line 361 "calc.y"
+#line 365 "calc.y"
                                                 { add_operator("*", '2'); }
-#line 2014 "calc.tab.c"
+#line 2018 "calc.tab.c"
     break;
 
   case 59: /* mul_div_mod: mul_div_mod '/' unary_negate  */
-#line 362 "calc.y"
+#line 366 "calc.y"
                                                 { add_operator("/", '2'); }
-#line 2020 "calc.tab.c"
+#line 2024 "calc.tab.c"
     break;
 
   case 60: /* mul_div_mod: mul_div_mod '%' unary_negate  */
-#line 363 "calc.y"
+#line 367 "calc.y"
                                                 { add_operator("%", '2'); }
-#line 2026 "calc.tab.c"
+#line 2030 "calc.tab.c"
     break;
 
   case 62: /* unary_negate: '-' exponentiation  */
-#line 367 "calc.y"
+#line 371 "calc.y"
                                                                 { add_operator("-", '0'); }
-#line 2032 "calc.tab.c"
+#line 2036 "calc.tab.c"
     break;
 
   case 64: /* exponentiation: adjacent "**" exponentiation  */
-#line 372 "calc.y"
+#line 376 "calc.y"
                                                 { add_operator("**", '2'); }
-#line 2038 "calc.tab.c"
+#line 2042 "calc.tab.c"
     break;
 
   case 66: /* $@3: %empty  */
-#line 377 "calc.y"
+#line 381 "calc.y"
                                                                 { add_instruction(I_MARK_CALL); }
-#line 2044 "calc.tab.c"
+#line 2048 "calc.tab.c"
     break;
 
   case 67: /* adjacent: adjacent "->" $@3 pre_unary  */
-#line 378 "calc.y"
+#line 382 "calc.y"
                                                                                 { add_instruction(I_MAKE_CALL); }
-#line 2050 "calc.tab.c"
+#line 2054 "calc.tab.c"
     break;
 
   case 69: /* pre_unary: "++" post_unary  */
-#line 383 "calc.y"
+#line 387 "calc.y"
                                                                 { add_operator("++", '0');  }
-#line 2056 "calc.tab.c"
+#line 2060 "calc.tab.c"
     break;
 
   case 70: /* pre_unary: "--" post_unary  */
-#line 384 "calc.y"
+#line 388 "calc.y"
                                                                 { add_operator("--", '0');  }
-#line 2062 "calc.tab.c"
+#line 2066 "calc.tab.c"
     break;
 
   case 72: /* post_unary: copy "++"  */
-#line 389 "calc.y"
+#line 393 "calc.y"
                                                                         { add_operator("++", '1'); }
-#line 2068 "calc.tab.c"
+#line 2072 "calc.tab.c"
     break;
 
   case 73: /* post_unary: copy "--"  */
-#line 390 "calc.y"
+#line 394 "calc.y"
                                                                         { add_operator("--", '1'); }
-#line 2074 "calc.tab.c"
+#line 2078 "calc.tab.c"
     break;
 
   case 74: /* post_unary: copy "!"  */
-#line 391 "calc.y"
+#line 395 "calc.y"
                                                                         { add_operator("!", '1'); }
-#line 2080 "calc.tab.c"
+#line 2084 "calc.tab.c"
     break;
 
   case 76: /* copy: '@' call  */
-#line 396 "calc.y"
+#line 400 "calc.y"
                                                                         { add_operator("@", '0'); }
-#line 2086 "calc.tab.c"
+#line 2090 "calc.tab.c"
     break;
 
   case 78: /* $@4: %empty  */
-#line 401 "calc.y"
+#line 405 "calc.y"
                                                                                 { add_instruction(I_MARK_CALL); }
-#line 2092 "calc.tab.c"
+#line 2096 "calc.tab.c"
     break;
 
   case 79: /* call: basic_operand '(' $@4 csv ')'  */
-#line 402 "calc.y"
+#line 406 "calc.y"
                                                                         { add_instruction(I_MAKE_CALL); }
-#line 2098 "calc.tab.c"
+#line 2102 "calc.tab.c"
     break;
 
 
-#line 2102 "calc.tab.c"
+#line 2106 "calc.tab.c"
 
       default: break;
     }
@@ -2328,7 +2332,7 @@ yyreturn:
   return yyresult;
 }
 
-#line 411 "calc.y"
+#line 415 "calc.y"
 
 int main(int argc, char** argv) {
 	srand((unsigned int)clock());

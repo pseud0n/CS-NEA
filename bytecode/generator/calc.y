@@ -51,11 +51,14 @@
 #define CHANGE_NAME(character) full_directory[DIR_LEN_FULL + 1] = character;
 #define FOPEN(identifier) \
 	/* printf("Opening " #identifier " %s\n", full_directory); */ \
-	identifier##_file_ptr = fopen(full_directory, "ab+"); \
+	identifier##_file_ptr = fopen(full_directory, "ab+");
+#define FOPEN_EXIT(identifier) \
+	FOPEN(identifier) \
 	if (identifier##_file_ptr == NULL) { \
-		fprintf(stderr, "Could not create file %s", #identifier "_file_ptr"); \
+		fprintf(stderr, "Could not create file %s", #identifier "_file_ptr\n"); \
 		close_all(); \
 		clean_up(); \
+		return -1; \
 	}
 	//printf("Opened file " #identifier "_file_ptr successfully!\n");
 
@@ -211,7 +214,8 @@
 void clean_up() {
 	printf("Cleaning up files; error in bytecode generator\n");
 	close_all();
-	system("rm -fr ..");
+	system("rm *.bin"); // Deletes all 5 files; *.bin is just in case!
+	system("rmdir .."); // Delete now-empty folder
 }
 %}
 

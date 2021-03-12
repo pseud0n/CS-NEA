@@ -40,7 +40,7 @@ int main(int argc, char** argv) {
 		int generator_exit_status = WEXITSTATUS(std::system(("./parser.out "s + file_name).c_str()));
 		print("Status:", generator_exit_status);
 		if (generator_exit_status < 3 || generator_exit_status > 125) {
-			cout << "Interpreter exited due to bytecode generation failure (exit code" << generator_exit_status << ")\n";
+			cout << "Interpreter exited due to bytecode generation failure (exit code " << generator_exit_status << ")\n";
 			std::cin.get();
 #include "cache/clean.cpp"
 			return generator_exit_status;
