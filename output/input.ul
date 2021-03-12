@@ -1,4 +1,5 @@
 Puts(Integer("123") == 123);
+
 PutNL();
 GetLine("Success");;
 
