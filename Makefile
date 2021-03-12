@@ -23,5 +23,6 @@ FORCE: ;
 
 make clean:
 	rm -f ./output/*.out
+	output/clear-files.sh
 	make -C ./bytecode/generator clean
 	rm -f object_files/*
