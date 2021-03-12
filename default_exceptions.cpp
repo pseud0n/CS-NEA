@@ -18,6 +18,12 @@ namespace Exceptions {
 		oss << "ToBool did not return a boolean, returned " << object;
 		return oss.str();
 	};
+
+	auto comparison_different_types = [](const ExternalObject& object1, const ExternalObject& object2) {
+		std::ostringstream oss;
+		oss << "Expected the same type for comparison of builtin objects (" << object1 << "&" << object2 <<")";
+		return oss.str();
+	};
 }
 
 #endif

@@ -119,10 +119,49 @@ o = ExternalObject::emplace<Aliases::CppFunctionT>(
 	CppFunction::empty_eobject_vec, true, UL_LMBD {
 		ExternalObject *self = nullptr, *other = nullptr;
 		argument_data->assign_args<2>(arguments, self, other);
+		Types self_type = self->type(), other_type = other->type();
+		void *equals_method = self->get_attr("_Eq");
+		std::vector<ExternalObject> args;
+		if (self->type() == Types::custom) {
+			if (equals_method) {
+				return ExternalObject(equals_method)(args = make_eo_vec(*other));
+			}
+		} else if (other->type() == Types::custom) {
+			equals_method = other->get_attr("_Eq");
+			if (equals_method) {
+				return ExternalObject(equals_method)(args = make_eo_vec(*self)); // Assumes commutability
+			}
+		}
+		if (self->type() != other->type()) {
+			ExternalObject remove_ptr = equals_method;
+			THROW_ERROR(Exceptions::comparison_different_types(*self, *other))
+		}
+		// Default implementation requires that types are the same
+		return ExternalObject(equals_method)(args = make_eo_vec(*other));
+	}, CppFunction::empty_type_vec
+); EMPLACE("Eq")
+
+o = ExternalObject::emplace<Aliases::CppFunctionT>(
+	CppFunction::empty_eobject_vec, true, UL_LMBD {
+		ExternalObject *self = nullptr, *other = nullptr;
+		argument_data->assign_args<2>(arguments, self, other);
 		return get_object_as_bool(*self) && get_object_as_bool(*other);
 	}, CppFunction::empty_type_vec
 ); EMPLACE("And")
 
+o = ExternalObject::emplace<Aliases::CppFunctionT>(
+	CppFunction::empty_eobject_vec, true, UL_LMBD {
+		ExternalObject *self = nullptr, *other = nullptr;
+		argument_data->assign_args<2>(arguments, self, other);
+		return get_object_as_bool(*self) || get_object_as_bool(*other);
+	}, CppFunction::empty_type_vec
+); EMPLACE("Or")
+
+o = make_monadic_method<Aliases::BoolT, Aliases::BoolT>(
+	[](Aliases::BoolT* self) -> Aliases::BoolT {
+		return !*self;
+	}
+); EMPLACE("Not")
 // CLASS
 
 REASSIGN(cls)
@@ -313,6 +352,15 @@ o = make_monadic_method<Aliases::NullT, Aliases::BoolT>(
 		return false;
 	}
 ); EMPLACE("ToBool")
+
+o = ExternalObject::emplace<Aliases::CppFunctionT>(
+	CppFunction::empty_eobject_vec, true, UL_LMBD {
+		ExternalObject *self = nullptr, *other = nullptr;
+		argument_data->assign_args<2>(arguments, self, other);
+		return true;
+	}
+); EMPLACE("Eq")
+
 print("ADDED");
 
 // BOOLEAN
@@ -331,6 +379,14 @@ o = make_monadic_method<Aliases::BoolT, Aliases::BoolT>(
 REASSIGN(string)
 ADD_BASIC_MRO(string)
 print(Classes::string.get<Aliases::CustomT>(),Classes::cls.get<Aliases::CustomT>(),Classes::object.get<Aliases::CustomT>());
+
+o = ExternalObject::emplace<Aliases::CppFunctionT>(
+	CppFunction::empty_eobject_vec, true, UL_LMBD {
+		ExternalObject *self = nullptr, *other = nullptr;
+		argument_data->assign_args<2>(arguments, self, other);
+		return *self == *other;
+	}
+); EMPLACE("_Eq")
 
 o = make_monadic_method<Aliases::StringT, Aliases::ArrayT>(
 	[](Aliases::StringT* str) -> Aliases::ArrayT {
@@ -408,6 +464,14 @@ o = make_monadic_method<Aliases::StringT, Aliases::BoolT>(
 
 REASSIGN(integer)
 ADD_BASIC_MRO(integer)
+
+o = ExternalObject::emplace<Aliases::CppFunctionT>(
+	CppFunction::empty_eobject_vec, true, UL_LMBD {
+		ExternalObject *self = nullptr, *other = nullptr;
+		argument_data->assign_args<2>(arguments, self, other);
+		return *self == *other;
+	}
+); EMPLACE("_Eq")
 
 o = make_monadic_method<Aliases::NumT, Aliases::ArrayT>(
 	[](Aliases::NumT* num) -> Aliases::ArrayT {
