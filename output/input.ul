@@ -1,4 +1,4 @@
-Puts(True AND [1]);
-
+Puts(Integer("123") == 123);
+PutNL();
 GetLine("Success");;
 
