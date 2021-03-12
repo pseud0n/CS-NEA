@@ -10,7 +10,7 @@ lex.yy.c: calc.l calc.tab.h
 	flex calc.l
 
 calc.tab.h: calc.y
-	bison calc.y -dv --debug
+	bison calc.y -d
 
 ../../output/operators.out: ../operators.cpp
 	clang++ -o ../../output/operators.out ../operators.cpp -std=c++17 -Wall -Wpedantic -Wextra
