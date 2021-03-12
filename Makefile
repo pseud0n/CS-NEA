@@ -8,7 +8,7 @@ CODE_FILES_FILTERED := $(filter-out $(EXCLUDE), $(CODE_FILES))
 
 CPPFLAGS = -std=c++17 -g -Wall -Wpedantic -Wextra -pthread
 
-MAIN_DEFS = -D DO_CACHE_DECL -D SHOW_BC -D SHOW_CLOG
+MAIN_DEFS = -D DO_CACHE_DECL -D SHOW_BC #-D SHOW_CLOG
 # Possible defines: -D PLUMBER_DEBUG -D DO_CACHE_DECL -D TRACKER_DEBUG -D SHOW_CLOG -D SHOW_BC
 
 all: ./output/program.out ./output/operators.out ./output/parser.out
