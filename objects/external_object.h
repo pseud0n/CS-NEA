@@ -115,6 +115,8 @@ struct ExternalObject {
 
 	void reassign(const ExternalObject&);
 	Types find_custom_enum() const;
+
+	bool is_null() const;
 };
 
 #endif

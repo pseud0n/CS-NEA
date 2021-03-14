@@ -51,11 +51,12 @@ enum_to_class = {
 	{ Types::boolean, &Classes::boolean },
 	{ Types::cpp_function, &Classes::cpp_function },
 	{ Types::cpp_function_view, &Classes::cpp_function_view },
-	{ Types::code_block, &Classes::code_block },
 	{ Types::pair, &Classes::pair },
 	{ Types::array, &Classes::array },
 	{ Types::dictionary, &Classes::dict },
 	{ Types::base_exception, &Classes::base_exception },
+	{ Types::code_block, &Classes::code_block },
+	{ Types::if_chain, &Classes::if_chain },
 	{ Types::custom, &Classes::custom }
 };
 // E.g. Types::string maps to &Classes::string
@@ -73,6 +74,8 @@ ADD_BUILTIN("FunctionView")
 ADD_BUILTIN("Pair")
 ADD_BUILTIN("Array")
 ADD_BUILTIN("Dictionary")
+ADD_BUILTIN("CodeBlock")
+ADD_BUILTIN("If")
 ADD_BUILTIN("ExcBase")
 
 #define EMPLACE(name) class_ptr->emplace(name, std::move(o));
@@ -311,6 +314,20 @@ o = ExternalObject::emplace<Aliases::CppFunctionT>(
 						goto constructor_failure;
 				}
         	}
+			case Types::code_block:
+			{
+				if (ctor_args.empty()) {
+					return Aliases::CodeBlockT(0, true);
+				}
+				break;
+			}
+			case Types::if_chain:
+			{
+				if (ctor_args.size() == 1) {
+					return Aliases::IfT(get_object_as_bool(*ctor_args[0]));
+				}
+				break;
+			}
 			case Types::custom:
 			{
 				/*
@@ -444,14 +461,14 @@ o = ExternalObject::emplace<Aliases::CppFunctionT>(
 
 o = ExternalObject::emplace<Aliases::CppFunctionT>(
 	CppFunction::empty_eobject_vec, true, UL_LMBD {
-	std::string *self = nullptr;
-	Aliases::NumT *index = nullptr;
-	if (!argument_data->assign_args<2>(arguments, self, index)) {
-		return nullptr;
-	}
-	return std::string(1, (*self)[static_cast<size_t>(*index)]);
-
-	}, std::vector<Types>{Types::string, Types::any}
+		std::string *self = nullptr;
+		Aliases::NumT *index = nullptr;
+		argument_data->assign_args<2>(arguments, self, index);
+		if (*index >= self->size() || *index < 0 || *index >= std::numeric_limits<size_t>::max() - 1) {
+			THROW_ERROR(Exceptions::out_of_range(*index))
+		}
+		return std::string(1, (*self)[static_cast<size_t>(*index)]);
+	}, std::vector<Types>{Types::string, Types::number}
 ); EMPLACE("Call")
 
 o = make_monadic_method<Aliases::StringT, Aliases::BoolT>(
@@ -485,61 +502,65 @@ o = make_monadic_method<Aliases::NumT, Aliases::NumT>(
 	}
 ); EMPLACE("Neg")
 
+o = make_monadic_method<Aliases::NumT, Aliases::NumT>(
+	[](Aliases::NumT* num) -> Aliases::NumT {
+		print("FACT!!");
+		if (*num < 0) {
+			THROW_ERROR(Exceptions::out_of_range(*num))
+		}
+		print("Positive");
+		unsigned int counter = static_cast<unsigned int>(*num);
+		Aliases::NumT n = 1;
+		while (counter) {
+			n *= counter;
+			--counter;
+		}
+		return n;
+	}
+); EMPLACE("Fact")
+
 o = ExternalObject::emplace<Aliases::CppFunctionT>(
 	CppFunction::empty_eobject_vec, true, UL_LMBD {
-	Aliases::NumT *self = nullptr, *other = nullptr;
-	argument_data->assign_args<2>(arguments, self, other);
-	Aliases::NumT result = *self + *other;
-	return result;
-	}, std::vector<Types>{Types::number, Types::any}
+		Aliases::NumT *self = nullptr, *other = nullptr;
+		argument_data->assign_args<2>(arguments, self, other);
+		Aliases::NumT result = *self + *other;
+		return result;
+	}, std::vector<Types>{Types::number, Types::number}
 ); EMPLACE("Add")
 
-/*
 o = ExternalObject::emplace<Aliases::CppFunctionT>(
 	CppFunction::empty_eobject_vec, true, UL_LMBD {
-	Aliases::NumT self, other;
-	if (!argument_data->assign_args<2>(arguments, self, other)) {
-		return nullptr;
-	}
-	bmp::cpp_int result = self - other;
-	return result;
-	}, std::vector<Types>{Types::number, Types::any}
+		Aliases::NumT *self = nullptr, *other = nullptr;
+		if (!argument_data->assign_args<2>(arguments, self, other)) {
+			return nullptr;
+		}
+		bmp::cpp_int result = *self - *other;
+		return result;
+	}, std::vector<Types>{Types::number, Types::number}
 ); EMPLACE("Sub")
 
 o = ExternalObject::emplace<Aliases::CppFunctionT>(
 	CppFunction::empty_eobject_vec, true, UL_LMBD {
-	Aliases::NumT self, other;
-	if (!argument_data->assign_args<2>(arguments, self, other)) {
-		return nullptr;
-	}
-	Aliases::NumT result = self * other;
-	return result;
-	}, std::vector<Types>{Types::number, Types::any}
+		Aliases::NumT *self = nullptr, *other = nullptr;
+		if (!argument_data->assign_args<2>(arguments, self, other)) {
+			return nullptr;
+		}
+		bmp::cpp_int result = *self * *other;
+		return result;
+	}, std::vector<Types>{Types::number, Types::number}
 ); EMPLACE("Mul")
 
-o = ExternalObject::emplace<Aliases::CppFunctionT>(
-	CppFunction::empty_eobject_vec, true, UL_LMBD {
-	Aliases::NumT self, other;
-	if (!argument_data->assign_args<2>(arguments, self, other)) {
-		return nullptr;
-	}
-	Aliases::NumT result = self / other;
-	return result;
-	}, std::vector<Types>{Types::number, Types::any}
-); EMPLACE("Div")
 
 o = ExternalObject::emplace<Aliases::CppFunctionT>(
 	CppFunction::empty_eobject_vec, true, UL_LMBD {
-	Aliases::NumT self, other;
-	if (!argument_data->assign_args<2>(arguments, self, other)) {
-		return nullptr;
-	}
-	Aliases::NumT result = self % other;
-	return result;
-	}, std::vector<Types>{Types::number, Types::any}
+		Aliases::NumT *self = nullptr, *other = nullptr;
+		if (!argument_data->assign_args<2>(arguments, self, other)) {
+			return nullptr;
+		}
+		bmp::cpp_int result = *self % *other;
+		return result;
+	}, std::vector<Types>{Types::number, Types::number}
 ); EMPLACE("Mod")
-
-*/
 
 o = ExternalObject::emplace<Aliases::CppFunctionT>(
 	CppFunction::empty_eobject_vec, true, UL_LMBD {
@@ -558,6 +579,17 @@ o = ExternalObject::emplace<Aliases::CppFunctionT>(
 		return result;
 	}, std::vector<Types>{Types::number, Types::number}
 ); EMPLACE("Div")
+
+o = ExternalObject::emplace<Aliases::CppFunctionT>(
+	CppFunction::empty_eobject_vec, true, UL_LMBD {
+		Aliases::NumT *self = nullptr, *other = nullptr;
+		if (!argument_data->assign_args<2>(arguments, self, other)) {
+			return nullptr;
+		}
+		bmp::cpp_int result = *self * *other;
+		return result;
+	}, std::vector<Types>{Types::number, Types::number}
+); EMPLACE("Call")
 
 o = ExternalObject::emplace<Aliases::CppFunctionT>(
 	CppFunction::empty_eobject_vec, true, UL_LMBD {
@@ -644,15 +676,45 @@ o = make_monadic_method<Aliases::BaseExceptionT, ExternalObject>(
 o = ExternalObject::emplace<Aliases::CppFunctionT>(
 	CppFunction::empty_eobject_vec, true, UL_LMBD {
 		Aliases::BaseExceptionT *exc = nullptr;
-		print("GOT TO METHOD", arguments);
 		if (!argument_data->assign_args<1>(arguments, exc)) {
 			return nullptr;
 		}
-		print("Success!!");
 		print("Exc:", exc);
 		return exc->message;
 	}, std::vector<Types>{Types::any}
 ); EMPLACE("Message")
+
+// CODEBLOCK
+
+REASSIGN(code_block)
+ADD_BASIC_MRO(code_block)
+
+// IF
+
+REASSIGN(if_chain)
+ADD_BASIC_MRO(if_chain)
+
+o = ExternalObject::emplace<Aliases::CppFunctionT>(
+	CppFunction::empty_eobject_vec, true, UL_LMBD {
+		Aliases::IfT *self = nullptr;
+		ExternalObject *other = nullptr;
+		argument_data->assign_args<2>(arguments, self, other);
+		Types arg_2_type = other->get_enum_type();
+		print("Calling If", arg_2_type);
+		if (arg_2_type == Types::code_block) {
+			self->send_code_block(*other);
+			// May need to preserve object for call later after original is destoyed
+		}
+		else if (arg_2_type == Types::if_chain) {
+			self->send_if(other->get<Aliases::IfT>());
+			// Don't need to preserve object; only need condition once
+		}
+		else {
+			THROW_ERROR(Exceptions::arg_types_wrong(arguments))
+		}
+		print("Finished call");
+	}
+); EMPLACE("Call")
 
 #undef ADD_BASIC_MRO
 #undef EMPLACE
@@ -683,6 +745,7 @@ ADD_CLASS("ExcRuntime", "ExcBase")
 		ADD_CLASS("ExcArithmetic", "ExcLogic")
 			ADD_CLASS("ExcZeroDiv", "ExcArithmetic")
 			ADD_CLASS("ExcNegPow", "ExcArithmetic")
+		ADD_CLASS("ExcBounds", "ExcLogic")
 		ADD_CLASS("ExcName", "ExcLogic")
 	ADD_CLASS("ExcEnviron", "ExcLogic")
 		ADD_CLASS("ExcFile", "ExcEnviron")
@@ -709,15 +772,14 @@ DEFINE_TYPE_DIFF(dictionary, dict)
 
 DEFINE_TYPE(null_type)
 DEFINE_TYPE(string)
-DEFINE_TYPE(string)
 DEFINE_TYPE(boolean)
 DEFINE_TYPE(cpp_function)
 DEFINE_TYPE(cpp_function_view)
-DEFINE_TYPE(code_block)
 DEFINE_TYPE(pair)
 DEFINE_TYPE(array)
 DEFINE_TYPE(base_exception)
-DEFINE_TYPE(null_type)
+DEFINE_TYPE(code_block)
+DEFINE_TYPE(if_chain)
 DEFINE_TYPE(custom)
 
 #undef DEFINE_TYPE

@@ -469,12 +469,14 @@ ExternalObject ExternalObject::operator ()(std::vector<ExternalObject>& args) {
 		default:
 			print("Me:", *this, "my type attrs:", get_type().attrs_of());
 			ExternalObject& my_type = get_type();
-			ExternalObject call_me = my_type.get_attr("Call");
+			ExternalObject call_me = my_type.self_get_attr("Call");
 			std::vector<ExternalObject> args_plus_class {*this};
 			print("Got to here...", *this);
 			args_plus_class.insert(args_plus_class.end(), args.begin(), args.end());
 			print("CALLING", *this ,"WITH", args_plus_class);
-			return call_me(args_plus_class);
+			ExternalObject result = call_me(args_plus_class);
+			print("Called");
+			return result;
 	}
 }
 
@@ -642,7 +644,9 @@ ExternalObject& ExternalObject::self_get_attr(const char* name) const {
 
 	if (attrs_it == attrs_end) {
 		// No method resolution order; look for name
+		print("No MRO");
 		attrs_it = attrs.find(name);
+		print("Looking for", name, "in", attrs);
 		if (attrs_it == attrs_end) {
 			throw std::runtime_error("oh no");
 		} else {
@@ -955,6 +959,10 @@ Types ExternalObject::find_custom_enum() const { // Should be called for a class
 	}
 	print("Not found...");
 	// Last object is Object which is found in enum_to_class, so will always return
+}
+
+bool ExternalObject::is_null() const {
+	return io_ptr == nullptr;
 }
 
 #endif

@@ -171,40 +171,13 @@ namespace UL {
 	}
 
 	std::string repr_arg_type_error(const std::vector<Types>& required_types, const std::vector<ExternalObject>& arguments) {
-		std::stringstream error;
-		//print("here");
-		//if (cpp_function.has_type_requirement) {
-			/*// For extra debug:
-			std::vector<Types> v(arguments.size());
-			std::transform(
-				arguments.begin(), arguments.end(), v.begin(),
-				[](const ExternalObject& o) -> Types { return o.type(); }
-			);
-			print("has type requirement", arguments, v, cpp_function.required_types, cpp_function.required_types.size());
-			*/
-			for (size_t i = 0; i < required_types.size(); ++i) {
-				if (required_types[i] != Types::any && required_types[i] != arguments[i].type()) {
-					//print("Error!");
-					show_arg_error(error, i, required_types[i], arguments[i]);
-					/*
-					error
-						<< "For argument " << i
-						<< ": acceptable type: " << cpp_function.required_types[i] 
-						<< ", got type: " << arguments[i].type();
-					*/
-					/*
-					error << " - entered types (";
-					for (size_t i = 0; i < entered_types.size(); ++i) {
-						if (i != 0)	stream << ", ";
-						error << cpp_function.required_types[i];
-					}
-					error  << ")" << type_to_construct;
-					*/
-					break;
-				}
+		std::ostringstream error;
+		for (size_t i = 0; i < required_types.size(); ++i) {
+			if (required_types[i] != Types::any && required_types[i] != arguments[i].type()) {
+				show_arg_error(error, i, required_types[i], arguments[i]);
+				break;
 			}
-		//}
-		//print("Got to end");
+		}
 		return error.str();
 	}
 	
@@ -261,7 +234,16 @@ namespace UL {
 				return repr_for_print(stream, eobject.get<Aliases::BaseExceptionT>().type) << "(" << eobject.get<Aliases::BaseExceptionT>().message << ")";
 				//return stream << "BE";
 			case Types::code_block:
-				return stream << "{" << eobject.io_ptr << ":"<< eobject.get<Aliases::CodeBlockT>().start_location << "}";
+				//return stream << "{" << eobject.io_ptr << ":"<< eobject.get<Aliases::CodeBlockT>().start_location << "}";
+				return stream << eobject.get<Aliases::CodeBlockT>();
+			case Types::if_chain:
+			{
+				const ExternalObject& code_block = eobject.get<Aliases::IfT>().code_block_ref;
+				return stream << "If:";
+				if (code_block.is_null())
+					return stream << "Null";
+				return stream << code_block;
+			}
 			case Types::custom:
 			{
 				const Aliases::CustomT& custom = eobject.get<Aliases::CustomT>();

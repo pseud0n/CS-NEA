@@ -108,6 +108,7 @@ Plumber plumber;
 		case Types::base_exception: SWITCH_MACRO(Aliases::BaseExceptionT); break; \
 		case Types::custom: SWITCH_MACRO(Aliases::CustomT); break; \
 		case Types::code_block: SWITCH_MACRO(Aliases::CodeBlockT); break; \
+		case Types::if_chain: SWITCH_MACRO(Aliases::IfT); break; \
 	}
 
 
@@ -121,8 +122,8 @@ namespace UL {
 #include "cache/decl.h"
 #include "exceptions.h"
 #include "code_block.h"
+#include "if.h"
 #include "base_exception.cpp"
-#include "default_exceptions.cpp"
 
 	using ObjectT = std::variant<ExternalObject, std::string*>;
 
@@ -132,6 +133,7 @@ namespace UL {
 #include "hash.h"
 
 #include "printer.h"
+#include "default_exceptions.cpp"
 
 
 //(UL::InternalObject<UL::Aliases::NumT>*)self.io_ptr
@@ -351,11 +353,12 @@ namespace UL {
 		ADD_CLASS_REF(boolean, "Boolean")
 		ADD_CLASS_REF(cpp_function, "Function")
 		ADD_CLASS_REF(cpp_function_view, "FunctionView")
-		ADD_CLASS_REF(code_block, "CodeBlock")
 		ADD_CLASS_REF(pair, "Pair")
 		ADD_CLASS_REF(array, "Array")
 		ADD_CLASS_REF(dict, "Dict")
 		ADD_CLASS_REF(base_exception, "ExcBase")
+		ADD_CLASS_REF(code_block, "CodeBlock")
+		ADD_CLASS_REF(if_chain, "If")
 		ADD_CLASS_REF(custom, "Generic")
 	}
 
@@ -399,6 +402,7 @@ namespace UL {
 
 #include "base_exception.cpp"
 #include "code_block.cpp"
+#include "if.cpp"
 #include "objects/external_object.cpp"
 #include "objects/internal_object.cpp"
 
@@ -414,11 +418,11 @@ namespace UL {
 	}
 
 	bool get_object_as_bool(ExternalObject& object) {
-		ExternalObject boolean = ExternalObject(object.get_attr("ToBool"))();
-		if (boolean.type() != Types::boolean) {
-			THROW_ERROR(Exceptions::expected_bool(object))
+		void *boolean_func = object.get_attr_no_throw("ToBool");
+		if (boolean_func) {
+			return ExternalObject(boolean_func)().get<Aliases::BoolT>();
 		}
-		return boolean.get<Aliases::BoolT>();
+		return true; // Other values are truthy by default
 	}
 
 	ExternalObject *value_ptr;

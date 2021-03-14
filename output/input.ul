@@ -1,5 +1,3 @@
-Puts(Integer("123") == 123);
+Puts(1->2(3)->3);
 
-PutNL();
 GetLine("Success");;
-

@@ -271,7 +271,7 @@ basic_operand:
 	T_NUM								{ add_number(yylval);  }
 |	T_STR								{ add_string(yylval); }
 |	T_ID								{ add_id(yylval);  }
-|	'{' '}'								{ add_instruction(I_MARK_CODE); add_instruction(I_NOP); add_instruction(I_MAKE_CODE); }
+|	'{' '}'								{ add_instruction(I_MARK_CODE); add_instruction(I_NOP); add_instruction(I_END_EXP); add_instruction(I_MAKE_CODE); }
 |	'{'									{ add_instruction(I_MARK_CODE);  }
 	lines '}'							{ add_instruction(I_MAKE_CODE);  }
 //|	'{'									{ add_instruction(I_MARK_CODE);  }
@@ -279,7 +279,9 @@ basic_operand:
 |	'['									{ add_instruction(I_MARK_LIST);  }
 	csv ']'								{ add_instruction(I_MAKE_LIST);  }
 |	'(' expr ')'				
-|	basic_operand '.' T_ID						{ add_attr(yylval); }
+//|	basic_operand '.' T_ID						{ add_attr(yylval); }
+//|	expr '('							{ add_instruction(I_MARK_CALL); }
+//	csv ')'								{ add_instruction(I_MAKE_CALL); }
 ;
 
 expr:
@@ -392,18 +394,19 @@ post_unary:
 	copy
 |	copy "++"							{ add_operator("++", '1'); }
 |	copy "--"							{ add_operator("--", '1'); }
-|	copy "!"							{ add_operator("!", '1'); }
+|	copy '!'							{ add_operator("!", '1'); }
 ;
 
 copy:
-	call
-|	'@' call							{ add_operator("@", '0'); }
+	call_or_getattr
+|	'@' call_or_getattr					{ add_operator("@", '0'); }
 ;
 
-call:
+call_or_getattr:
 	basic_operand
 |	basic_operand '('							{ add_instruction(I_MARK_CALL); }
 	csv ')'								{ add_instruction(I_MAKE_CALL); }
+|	basic_operand '.' T_ID				{ add_attr(yylval);  }
 
 /*
 getattr:

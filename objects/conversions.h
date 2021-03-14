@@ -60,5 +60,7 @@ MAKE_TYPE_CONVERSION(Aliases::BaseExceptionT, Aliases::BaseExceptionT, Types::ba
 
 MAKE_TYPE_CONVERSION(Aliases::CodeBlockT, Aliases::CodeBlockT, Types::code_block, false)
 
+MAKE_TYPE_CONVERSION(Aliases::IfT, Aliases::IfT, Types::if_chain, false)
+
 //MAKE_TYPE_CONVERSION(from, to, enum_t, make_immovable)
 #endif

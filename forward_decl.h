@@ -94,6 +94,8 @@ enum class Types {
 
 	code_block,
 
+	if_chain,
+
 	any
 };
 
@@ -106,6 +108,7 @@ struct ExternalObject;
 class FunctionView;
 class BaseException;
 class CodeBlock;
+class If;
 
 namespace Aliases {
 	using BlankT 				= bool;
@@ -123,6 +126,7 @@ namespace Aliases {
 	using BaseExceptionT		= BaseException;
 	using CustomT	 			= std::unordered_map<std::string, ExternalObject>;
 	using CodeBlockT			= CodeBlock;
+	using IfT					= If;
 	// Intended to reduce the effort required to change 
 }
 

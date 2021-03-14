@@ -361,15 +361,16 @@ void ScopeStack::operator ()() {
 					print("Attr name:", attr_name);
 					ExternalObject& operand = get_top_as_object();
 					auto args = make_eo_vec(operand);
-					print(operand.get_type(), operand.get_type().attrs_of()["MRO"].get<Aliases::ArrayT>()[1].attrs_of());
-					std::cin.get();
 					ExternalObject result = ExternalObject(operand.get_type().get_attr(attr_name))(args);
 					pop_top(); // No longer needed!
 					push_op(result);
-					std::cin.get();
 				} else if (index < Operators::pre_unary_operators.size() + Operators::post_unary_operators.size()) {
-					attr_name = Operators::post_unary_operators[index + Operators::post_unary_operators.size()].second;
-					get_top() = add_temporary(get_top_as_object().get_type().get_attr(attr_name));
+					attr_name = Operators::post_unary_operators[index - Operators::pre_unary_operators.size()].second;
+					ExternalObject& operand = get_top_as_object();
+					auto args = make_eo_vec(operand);
+					ExternalObject result = ExternalObject(operand.get_type().get_attr(attr_name))(args);
+					pop_top(); // No longer needed!
+					push_op(result);
 				} else {
 					ExternalObject popped_top = std::move(get_top_as_object());
 					pop_top();
@@ -428,11 +429,14 @@ void ScopeStack::operator ()() {
 					an error is raised.
 					*/
 					std::string& name = std::get<1>(*penultimate_iterator);
+					/*
 					ExternalObject *maybe_value = get_scoped_varable(name);
 					if (!maybe_value) {
 						INTERNAL_THROW_ERROR("Could not find variable "s + name + " in scope (= is only for reassignment, consider :=)");
 					}
-					top_scope()[std::get<1>(*penultimate_iterator)] = top_as_object;
+					*/
+					ExternalObject* previous_definition = &find_object(std::get<1>(*penultimate_iterator));
+					top_scope()[std::get<1>(*penultimate_iterator)] = *previous_definition = top_as_object;
 					//pop_top();
 					evaluation_stack.erase(penultimate_iterator);
 				}
