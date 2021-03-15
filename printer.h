@@ -239,7 +239,7 @@ namespace UL {
 			case Types::if_chain:
 			{
 				const ExternalObject& code_block = eobject.get<Aliases::IfT>().code_block_ref;
-				return stream << "If:";
+				stream << "If:";
 				if (code_block.is_null())
 					return stream << "Null";
 				return stream << code_block;

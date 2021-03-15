@@ -6,7 +6,7 @@ class CppFunction {
 	This object has ownership of 
 	*/
 public:
-	using FuncT = std::function<ExternalObject(CppFunction const*, std::vector<ExternalObject>&)>;
+	using FuncT = std::function<ExternalObject(CppFunction*, std::vector<ExternalObject>&)>;
 
 	static inline std::vector<ExternalObject> empty_eobject_vec;
 	static inline std::vector<Types> 			empty_type_vec;
@@ -32,7 +32,7 @@ public:
 
 	CppFunction();
 	CppFunction(
-		const std::vector<ExternalObject>&, bool,
+		std::vector<ExternalObject>&&, bool,
 		FuncT,
 		const std::vector<Types>& = empty_type_vec, Types = Types::any);
 	CppFunction(const CppFunction&);
@@ -41,13 +41,13 @@ public:
 	CppFunction& operator =(CppFunction&&) noexcept;
 	~CppFunction();
 
-	ExternalObject operator ()(std::vector<ExternalObject>&) const;
-	ExternalObject operator ()() const;
+	ExternalObject operator ()(std::vector<ExternalObject>&);
+	ExternalObject operator ()();
 
 	template <size_t MinArgCount, typename... TypesT>
-	bool assign_args(std::vector<ExternalObject>&, TypesT*&...) const;
-	template <size_t MinArgCount, typename VariadicType, typename... TypesT> bool assign_variadic_args(std::vector<ExternalObject>&, std::vector<VariadicType*>&, TypesT*&...) const;
-	template <typename VariadicType> void assign_variadic_args(size_t, std::vector<ExternalObject>&, std::vector<VariadicType*>&) const;
+	bool assign_args(std::vector<ExternalObject>&, TypesT*&...);
+	template <size_t MinArgCount, typename VariadicType, typename... TypesT> bool assign_variadic_args(std::vector<ExternalObject>&, std::vector<VariadicType*>&, TypesT*&...);
+	template <typename VariadicType> void assign_variadic_args(size_t, std::vector<ExternalObject>&, std::vector<VariadicType*>&);
 };
 
 bool operator ==(const CppFunction& f1, const CppFunction& f2) {

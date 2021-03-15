@@ -8,10 +8,10 @@ CppFunction::CppFunction()
 }
 
 CppFunction::CppFunction(
-	const std::vector<ExternalObject>& optional_arguments,
+	std::vector<ExternalObject>&& optional_arguments,
 	bool is_variadic, FuncT func,
 	const std::vector<Types>& required_types, Types variadic_type)
-	: optional_arguments(optional_arguments), is_variadic(is_variadic), function(func),
+	: optional_arguments(std::forward<std::vector<ExternalObject>>(optional_arguments)), is_variadic(is_variadic), function(func),
 		required_types(required_types), variadic_type(variadic_type),
 		has_type_requirement(!required_types.empty()) {
 	clog << "Constructing CppFunction " << this << '\n';
@@ -64,25 +64,25 @@ CppFunction::~CppFunction() {
 	*/
 }
 
-ExternalObject CppFunction::operator ()(std::vector<ExternalObject>& args) const {
+ExternalObject CppFunction::operator ()(std::vector<ExternalObject>& args) {
 	print("Calling with", args);
 	return function(this, args);
 }
 
-ExternalObject CppFunction::operator ()() const { // Simple function which takes no arguments
+ExternalObject CppFunction::operator ()() { // Simple function which takes no arguments
 	return function(this, empty_eobject_vec);
 }
 
 //ExternalObject operator ()(ExternalObject self, ) 
 template <size_t min_arg_count, typename... TypesT>
-bool CppFunction::assign_args(std::vector<ExternalObject>& inputs, TypesT*&... outputs) const {
+bool CppFunction::assign_args(std::vector<ExternalObject>& inputs, TypesT*&... outputs) {
 	/*
 	This function is used when assigning arguments in a non-variadic function.
 	It takes the inputs and outputs and simply maps them (also taking optional arguments into account)
 	The OPTRs passed in are treated as objects since we don't need to reference count here
 	*/
 
-	print("Assigning args:", inputs.size(), min_arg_count);
+	print("Assigning args:", inputs, inputs.size(), min_arg_count);
 	//print(sizeof...(outputs),  __PRETTY_FUNCTION__);
     
 
@@ -118,14 +118,15 @@ bool CppFunction::assign_args(std::vector<ExternalObject>& inputs, TypesT*&... o
 				//	var_pointer = inputs[argument_traverser++];    
 				// else
 				var_pointer = &inputs[argument_traverser++].get_mut<CURRENT_TYPE>();
+				print("Successful assignment");
               }()
             ), ...); // Assigns each variable the current (required) entered argument
 
 		},//std::tuple_element_t<N, std::tuple<Ts&...>>
-		[&inputs, this](auto&... var_pointer) { // `this` is a pointer so it's captured by value
+		[&inputs, this](auto*&... var_pointer) { // `this` is a pointer so it's captured by value
 			// All optional arguments that remain are handled here (arguments beyond minimum)
 			size_t index = 0;
-			//print("vectors:", (inputs), (optional_arguments));
+			print("vectors:", (inputs), (optional_arguments));
 			/*
 			e.g.	min_arg_count = 3, inputs = {13, 14, 15, 16} & optional_arguments = {5, 6}
 					then the resulting values should be {13, 14, 15, 16, 6}
@@ -136,12 +137,12 @@ bool CppFunction::assign_args(std::vector<ExternalObject>& inputs, TypesT*&... o
 					//print("> ", index, inputs.size(), min_arg_count, min_arg_count + optional_arguments.size() - inputs.size());
 					if (index >= min_arg_count + optional_arguments.size() - inputs.size() ) { // If this optional argument was passed explicitly, i.e. not left as default
 						//print(index, min_arg_count + optional_arguments.size(), inputs.size());
-						//print("Explicit:", index, inputs[index + min_arg_count]);
-						var_pointer = &inputs[index + min_arg_count].get<CURRENT_TYPE>(); // Set variable to explicitly passed argument
+						print("Explicit:", index, inputs[index + min_arg_count], &inputs[index + min_arg_count]);
+						var_pointer = &inputs[index + min_arg_count].get_mut<CURRENT_TYPE>(); // Set variable to explicitly passed argument
 					}
 					else { // If this optional argument was not passed and instead is set to a default value
-						//print("Implicit", index);
-						var_pointer = &optional_arguments[index].get<CURRENT_TYPE>();
+						print("Implicit", index, optional_arguments[index + min_arg_count]);
+						var_pointer = &optional_arguments[index].get_mut<CURRENT_TYPE>();
 					}
 					++index;
 				}()
@@ -151,12 +152,13 @@ bool CppFunction::assign_args(std::vector<ExternalObject>& inputs, TypesT*&... o
 	); // Note that the tuple container is able to store references
 
 #undef CURRENT_TYPE
+	print("assign_args successful");
 
 	return true;
 }
 
 template <size_t min_arg_count, typename VariadicType, typename... TypesT>
-bool CppFunction::assign_variadic_args(std::vector<ExternalObject>& inputs, std::vector<VariadicType*>& variadic_var, TypesT*&... outputs) const {
+bool CppFunction::assign_variadic_args(std::vector<ExternalObject>& inputs, std::vector<VariadicType*>& variadic_var, TypesT*&... outputs) {
 	//*variadic_var = std::vector<VariadicType>(); // vector should be initialised regardless of arguments entered
 
 	//clog << "And Here\n";
@@ -171,7 +173,7 @@ bool CppFunction::assign_variadic_args(std::vector<ExternalObject>& inputs, std:
 }
 
 template <typename VariadicType>
-void CppFunction::assign_variadic_args(size_t non_variadic_count, std::vector<ExternalObject>& inputs, std::vector<VariadicType*>& variadic_var) const {
+void CppFunction::assign_variadic_args(size_t non_variadic_count, std::vector<ExternalObject>& inputs, std::vector<VariadicType*>& variadic_var) {
 	clog << "VC: " << inputs.size() - non_variadic_count << "\n";
 	bool has_variadic_type_requirement = variadic_type != Types::any;
 	for (size_t variadic_argument_traverser = non_variadic_count; variadic_argument_traverser < inputs.size(); ++variadic_argument_traverser) {

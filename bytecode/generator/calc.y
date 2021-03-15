@@ -249,7 +249,7 @@ void clean_up() {
 %%
 
 start:
-	lines
+	lines								{ add_instruction(I_NOP);  }
 ;
 
 lines: // 1 or more lines
@@ -279,7 +279,7 @@ basic_operand:
 |	'['									{ add_instruction(I_MARK_LIST);  }
 	csv ']'								{ add_instruction(I_MAKE_LIST);  }
 |	'(' expr ')'				
-//|	basic_operand '.' T_ID						{ add_attr(yylval); }
+|	basic_operand '.' T_ID						{ add_attr(yylval); }
 //|	expr '('							{ add_instruction(I_MARK_CALL); }
 //	csv ')'								{ add_instruction(I_MAKE_CALL); }
 ;
@@ -394,7 +394,7 @@ post_unary:
 	copy
 |	copy "++"							{ add_operator("++", '1'); }
 |	copy "--"							{ add_operator("--", '1'); }
-|	copy '!'							{ add_operator("!", '1'); }
+|	copy "!"							{ add_operator("!", '1'); }
 ;
 
 copy:
@@ -404,16 +404,9 @@ copy:
 
 call_or_getattr:
 	basic_operand
-|	basic_operand '('							{ add_instruction(I_MARK_CALL); }
+|	call_or_getattr '('							{ add_instruction(I_MARK_CALL); }
 	csv ')'								{ add_instruction(I_MAKE_CALL); }
-|	basic_operand '.' T_ID				{ add_attr(yylval);  }
-
-/*
-getattr:
-	basic_operand
-|	getattr '.' basic_operand					{ add_attr(yylval); }
-;
-*/
+|	call_or_getattr '.' T_ID			{ add_attr(yylval); }
 
 %%
 int main(int argc, char** argv) {

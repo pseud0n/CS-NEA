@@ -14,7 +14,6 @@ private:
 	bool condition_met = false;
 
 	void send_code(bool, const ExternalObject&);
-	void evaluate() const;
 	bool is_modifiable() const;
 
 public:
@@ -25,6 +24,7 @@ public:
 
 	void send_code_block(const ExternalObject&);
 	void send_if(const If&);
+	void evaluate() const;
 };
 
 bool operator ==(const If& o1, const If& o2) {

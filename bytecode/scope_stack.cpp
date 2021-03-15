@@ -182,6 +182,7 @@ public:
 		size_t name_number = next_temporary();	
 		[[maybe_unused]] auto [it, success] = top_scope().emplace("."s + std::to_string(name_number), temp);
 		// it: iterator to inserted item, success: whether the emplacement was successful (unused)
+		print("Adding temporary:", name_number);
 		return it;
 	}
 
@@ -199,6 +200,7 @@ public:
 	void push_op(T&& obj) {
 		evaluation_stack.emplace_back();
 		evaluation_stack.back().emplace<0>(add_temporary(std::forward<T>(obj)));
+		print("Pushed op");
 	}
 
 	void push_id(std::string& str) {
@@ -340,9 +342,11 @@ void ScopeStack::operator ()() {
 				break;
 			}
 			case I_PUSH_INT:
+			{
 				push_op(Aliases::NumT(numbers[bytecode[++instruction_index]]));
 				// Construct new number from a string
 				break;
+			}
 			case I_PUSH_STR:
 				print(strings);
 				push_op(std::string(strings[bytecode[++instruction_index]]));
@@ -445,8 +449,9 @@ void ScopeStack::operator ()() {
 			case I_LET:
 			{
 				auto penultimate_iterator = evaluation_stack.end() - 2;
-				ExternalObject top_as_object = get_top_as_object();
+				ExternalObject top_as_object = get_top_as_object(); // This keeps it alive
 				pop_top();
+				print("top popped");
 				if (penultimate_iterator->index() == 0) {
 					INTERNAL_THROW_ERROR(":= is used for assigning to an identifier, not an reference expression"s)
 				} else {
@@ -584,6 +589,8 @@ void ScopeStack::operator ()() {
 		}
 		++instruction_index;
 	}
+	pop_top();
+	delete_temporaries(); // Otherwise, memory is leaked
 	print("------------------");
 #ifdef SHOW_CLOG
 	std::cin.get();

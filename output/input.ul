@@ -1,3 +1,4 @@
-Puts(1->2(3)->3);
-
-GetLine("Success");;
+If(False)->{
+	Puts("Cool");
+}();
+GetLine();;
