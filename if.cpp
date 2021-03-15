@@ -42,8 +42,9 @@ void If::send_code(bool condition, const ExternalObject& code) {
 }
 
 void If::send_if(const If& object) {
-	if (state != States::accept_any)
+	if (state != States::accept_any) {
 		THROW_ERROR(Exceptions::if_no_further_if());
+	}
 	condition_met = object.condition_met;
 	state = States::accept_if_body;
 	//send_code(object.condition_met, *object.execute);
@@ -70,13 +71,17 @@ void If::send_code_block(const ExternalObject& code_wrapper) {
 }
 
 void If::evaluate() const {
+	print("EVALUATING IF");
 	if (state == States::accept_if_body) {
 		THROW_ERROR(Exceptions::if_no_call())
 	}
-	if (!code_block_ref.is_null())
-		code_block_ref.get<Aliases::CodeBlockT>();
-	else
+	if (!code_block_ref.is_null()) {
+		print("Contains valid condition, calling", code_block_ref);
+		code_block_ref.get<Aliases::CodeBlockT>()();
+	}
+	else {
 		Bytecode::scopes.push_op(nullptr);
+	}
 }
 
 

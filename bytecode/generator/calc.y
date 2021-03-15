@@ -5,7 +5,7 @@
 #define printf(str, ...) (0)
 #endif
 
-#define YYDEBUG 1
+#define YYDEBUG 0
 #define YYSTYPE char*
 
 #include <unistd.h>
@@ -369,19 +369,21 @@ mul_div_mod:
 |	mul_div_mod '%' unary_negate		{ add_operator("%", '2'); }
 ;
 unary_negate:
-	exponentiation
-|	'-' exponentiation					{ add_operator("-", '0'); }
-;
-
-exponentiation:
 	adjacent
-|	adjacent "**" exponentiation		{ add_operator("**", '2'); }
+|	'-' adjacent						{ add_operator("-", '0'); }
 ;
 
 adjacent:
-	pre_unary
+	exponentiation
 |	adjacent "->"						{ add_instruction(I_MARK_CALL); }
-	pre_unary								{ add_instruction(I_MAKE_CALL); }
+	exponentiation						{ add_instruction(I_MAKE_CALL); }
+|	adjacent							{ add_instruction(I_MARK_CALL); }
+	exponentiation						{ add_instruction(I_MAKE_CALL); }
+;
+
+exponentiation:
+	pre_unary
+|	pre_unary "**" exponentiation		{ add_operator("**", '2'); }
 ;
 
 pre_unary:
@@ -394,7 +396,7 @@ post_unary:
 	copy
 |	copy "++"							{ add_operator("++", '1'); }
 |	copy "--"							{ add_operator("--", '1'); }
-|	copy "!"							{ add_operator("!", '1'); }
+|	copy '!'							{ add_operator("!", '1'); }
 ;
 
 copy:
@@ -494,7 +496,6 @@ int main(int argc, char** argv) {
 	}
 
 	yyin = input_file_ptr;
-	yydebug = 1;
 	while(yyparse());
 
 	close_all();

@@ -141,7 +141,7 @@ bool CppFunction::assign_args(std::vector<ExternalObject>& inputs, TypesT*&... o
 						var_pointer = &inputs[index + min_arg_count].get_mut<CURRENT_TYPE>(); // Set variable to explicitly passed argument
 					}
 					else { // If this optional argument was not passed and instead is set to a default value
-						print("Implicit", index, optional_arguments[index + min_arg_count]);
+						print("Implicit", index, min_arg_count, optional_arguments[index]);
 						var_pointer = &optional_arguments[index].get_mut<CURRENT_TYPE>();
 					}
 					++index;

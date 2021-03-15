@@ -1,4 +1,9 @@
-If(False)->{
-	Puts("Cool");
-}();
-GetLine();;
+If(Rand(0,2)){
+	Puts("1st");
+}If(Rand(0,1)){
+	Puts("2nd");
+}{
+	Puts("Neither");
+}End;
+PutNL();
+GetLine("Success!!");

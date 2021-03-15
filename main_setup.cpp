@@ -21,6 +21,9 @@ https://www.programiz.com/cpp-programming/online-compiler/
 #include <boost/multiprecision/cpp_int.hpp>
 #include <boost/functional/hash.hpp>
 
+#include <boost/random.hpp>
+#include <boost/random/random_device.hpp>
+
 #include <initializer_list>
 #include <unordered_map>
 #include <unordered_set>
@@ -36,6 +39,7 @@ https://www.programiz.com/cpp-programming/online-compiler/
 #include <numeric>
 #include <sstream>
 #include <string>
+#include <random>
 #include <vector>
 #include <array>
 #include <tuple>
@@ -109,6 +113,7 @@ Plumber plumber;
 		case Types::custom: SWITCH_MACRO(Aliases::CustomT); break; \
 		case Types::code_block: SWITCH_MACRO(Aliases::CodeBlockT); break; \
 		case Types::if_chain: SWITCH_MACRO(Aliases::IfT); break; \
+		case Types::generic_singleton: SWITCH_MACRO(Aliases::GenericSingletonT); break; \
 	}
 
 
@@ -123,6 +128,7 @@ namespace UL {
 #include "exceptions.h"
 #include "code_block.h"
 #include "if.h"
+#include "singleton.cpp"
 #include "base_exception.cpp"
 
 	using ObjectT = std::variant<ExternalObject, std::string*>;
@@ -134,53 +140,6 @@ namespace UL {
 
 #include "printer.h"
 #include "default_exceptions.cpp"
-
-
-//(UL::InternalObject<UL::Aliases::NumT>*)self.io_ptr
-
-#define CASE(enum_type, type) \
-	case Types::enum_type: SWITCH_MACRO(Aliases::type); break;
-
-#define _GENERATE_SWITCH(enum_val)								\
-	switch (enum_val) {											\
-		case Types::null_type:										\
-			break;												\
-		case Types::number:										\
-			SWITCH_MACRO(Aliases::NumT);						\
-			break;												\
-		case Types::string:										\
-			SWITCH_MACRO(Aliases::StringT);						\
-			break;												\
-		case Types::boolean:									\
-			SWITCH_MACRO(Aliases::BoolT);						\
-			break;												\
-		case Types::cpp_function:								\
-			SWITCH_MACRO(Aliases::CppFunctionT);				\
-			break;												\
-		case Types::bytecode_function:							\
-			SWITCH_MACRO(Aliases::ByteCodeFunctionT);			\
-			break;												\
-		case Types::list:										\
-			SWITCH_MACRO(Aliases::ListT);						\
-			break;												\
-		case Types::array:										\
-			SWITCH_MACRO(Aliases::ArrayT);						\
-			break;												\
-		CASE(Types::base_exception, Aliases::BaseExceptionT)	\
-		default:												\
-			break;												\
-	}
-
-		/*
-		CASE(boolean, BoolT)	\
-		CASE(cpp_function, CppFunctionT)	\
-		CASE(cpp_function_view, CppFunctionViewT)	\
-		CASE(pair, PairT)	\
-		CASE(array, ArrayT)	\
-		CASE(dictionary, DictT)	\
-		CASE(base_exception, BaseExceptionT)	\
-		CASE(custom, CustomT)	\
-	};*/
 
 #undef CASE
 
@@ -298,28 +257,6 @@ namespace UL {
 	std::unordered_map<Types, ExternalObject> builtin_objects;
 	std::unordered_map<Types, Aliases::CustomT> builtin_dicts;
 
-
-	/*
-	const std::unordered_map<UL::Types, const std::unordered_set<UL::Types> > conversion_table {
-		{Types::null,			   	{Types::number, Types::string}},
-		{Types::number,			 	{Types::string}},
-		{Types::string,			 	{Types::number, Types::string, Types::list}},
-		{Types::cpp_function,	   	{Types::string}},
-		{Types::bytecode_function,  {Types::string}},
-		{Types::list,			   	{Types::string}}
-	};
-	*/
-
-	namespace Conversions {
-		bool can_convert(int, Types type) { return type == Types::number || type == Types::string; }
-		bool can_convert(double, Types type) { return can_convert(0, type); }
-
-		bool can_convert(std::string, Types) { return true; }
-		bool can_convert(char*, Types) { return true; }
-		bool can_convert(const char*, Types) { return true; }
-		bool can_convert(std::string&, Types) { return true; }
-	}
-
 	template <typename... Ts>
 	std::vector<ExternalObject> make_eo_vec(Ts&&... elements) {
 		// I think that this is the best I can do here
@@ -359,6 +296,7 @@ namespace UL {
 		ADD_CLASS_REF(base_exception, "ExcBase")
 		ADD_CLASS_REF(code_block, "CodeBlock")
 		ADD_CLASS_REF(if_chain, "If")
+		ADD_CLASS_REF(generic_singleton, "Singleton")
 		ADD_CLASS_REF(custom, "Generic")
 	}
 

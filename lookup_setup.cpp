@@ -57,6 +57,7 @@ enum_to_class = {
 	{ Types::base_exception, &Classes::base_exception },
 	{ Types::code_block, &Classes::code_block },
 	{ Types::if_chain, &Classes::if_chain },
+	{ Types::generic_singleton, &Classes::generic_singleton },
 	{ Types::custom, &Classes::custom }
 };
 // E.g. Types::string maps to &Classes::string
@@ -76,6 +77,7 @@ ADD_BUILTIN("Array")
 ADD_BUILTIN("Dictionary")
 ADD_BUILTIN("CodeBlock")
 ADD_BUILTIN("If")
+ADD_BUILTIN("Singleton")
 ADD_BUILTIN("ExcBase")
 
 #define EMPLACE(name) class_ptr->emplace(name, std::move(o));
@@ -98,6 +100,13 @@ std::set<void const*> original_builtins;
 for (const auto& pair : all_builtins) {
 	original_builtins.insert(&pair.second);
 }
+
+all_builtins["True"] = true;
+all_builtins["False"] = false;
+all_builtins["Null"] = nullptr;
+all_builtins["N"] = "\n"s;
+all_builtins["S"] = " "s;
+all_builtins["End"] = Singleton();
 
 Aliases::CustomT *class_ptr;
 ExternalObject o;
@@ -496,6 +505,12 @@ o = make_monadic_method<Aliases::NumT, Aliases::ArrayT>(
 	}
 ); EMPLACE("ToArray")
 
+o = make_monadic_method<Aliases::NumT, Aliases::BoolT>(
+	[](Aliases::NumT* num) -> Aliases::BoolT {
+		return *num != 0;
+	}
+); EMPLACE("ToBool")
+
 o = make_monadic_method<Aliases::NumT, Aliases::NumT>(
 	[](Aliases::NumT* num) -> Aliases::NumT {
 		return -*num;
@@ -704,7 +719,7 @@ CppFunction temp(
 		//print("self:", *self, "other:", *other);
 		print(argument_data->optional_arguments);
 		print("other:", other);
-		if (other->is_null()) {
+		if (*other == all_builtins["End"]) {
 			self->evaluate();
 			return nullptr;
 		}
@@ -726,14 +741,13 @@ CppFunction temp(
 	}, std::vector<Types>{Types::if_chain, Types::any}
 );
 
-temp.optional_arguments = std::vector<ExternalObject>{nullptr};
+temp.optional_arguments = std::vector<ExternalObject>{all_builtins["End"]};
 
 print("temp", temp.optional_arguments);
 
 o = std::move(temp);
 
 print("o", o, o.get<Aliases::CppFunctionT>().optional_arguments);
-std::cin.get();
 
 EMPLACE("Call")
 
@@ -776,12 +790,6 @@ ADD_CLASS("ExcRuntime", "ExcBase")
 print(all_builtins["ExcRuntime"].get<Aliases::CustomT>(), all_builtins["ExcBase"].get<Aliases::CustomT>());
 print(all_builtins["ExcRuntime"].io_ptr, all_builtins["ExcBase"].io_ptr);
 
-all_builtins["True"] = true;
-all_builtins["False"] = false;
-all_builtins["Null"] = nullptr;
-all_builtins["N"] = "\n"s;
-all_builtins["S"] = " "s;
-
 
 #define DEFINE_TYPE_DIFF(enum_name, class_name) \
 	builtin_dicts[Types::enum_name].try_emplace("Type", Classes::class_name, true); \
@@ -801,6 +809,7 @@ DEFINE_TYPE(array)
 DEFINE_TYPE(base_exception)
 DEFINE_TYPE(code_block)
 DEFINE_TYPE(if_chain)
+DEFINE_TYPE(generic_singleton)
 DEFINE_TYPE(custom)
 
 #undef DEFINE_TYPE
@@ -867,7 +876,7 @@ all_builtins.emplace("PutNL",
 );
 
 all_builtins.emplace("GetLine",
-	CppFunction(make_eo_vec("Success!!!"s), false, UL_LMBD {
+	CppFunction(make_eo_vec(""s), false, UL_LMBD {
 			std::string *str, input_line;
 			// input_line is not a pointer because C++ syntax is weird
 			argument_data->assign_args<0>(arguments, str);
@@ -886,11 +895,23 @@ all_builtins.emplace("GetLine",
 
 all_builtins.emplace("Len",
 	CppFunction(make_eo_vec(), false, UL_LMBD {
-			argument_data->assign_args<0>(arguments);
-			cout << "\n";
-			return nullptr;
+		argument_data->assign_args<0>(arguments);
+		cout << "\n";
+		return nullptr;
 		}
 	)
+);
+
+all_builtins.emplace("Rand",
+	CppFunction(make_eo_vec(), false, UL_LMBD {
+		Aliases::NumT *start = nullptr, *end = nullptr;
+		argument_data->assign_args<2>(arguments, start, end);
+
+		static boost::random::random_device generator;
+
+		boost::random::uniform_int_distribution<Aliases::NumT> uniform(*start, *end);
+		return uniform(generator);
+	})
 );
 
 all_builtins.emplace("_CppEnum",

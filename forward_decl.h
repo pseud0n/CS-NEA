@@ -96,6 +96,8 @@ enum class Types {
 
 	if_chain,
 
+	generic_singleton,
+
 	any
 };
 
@@ -109,9 +111,10 @@ class FunctionView;
 class BaseException;
 class CodeBlock;
 class If;
+class Singleton;
 
 namespace Aliases {
-	using BlankT 				= bool;
+	using BlankT 				= char;
 	using NullT 				= std::nullptr_t;
 	using NumT 					= bmp::cpp_int;
 	using BoolT 				= bool;
@@ -127,6 +130,7 @@ namespace Aliases {
 	using CustomT	 			= std::unordered_map<std::string, ExternalObject>;
 	using CodeBlockT			= CodeBlock;
 	using IfT					= If;
+	using GenericSingletonT		= Singleton;
 	// Intended to reduce the effort required to change 
 }
 

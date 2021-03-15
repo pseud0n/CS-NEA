@@ -33,6 +33,8 @@ namespace UL {
 			TP_CASE(base_exception);
 			TP_CASE(custom)
 			TP_CASE(code_block)
+			TP_CASE(if_chain)
+			TP_CASE(generic_singleton)
 			TP_CASE(any)
 			default:
 				return stream << "?";
@@ -244,6 +246,8 @@ namespace UL {
 					return stream << "Null";
 				return stream << code_block;
 			}
+			case Types::generic_singleton:
+				return stream << "Singleton " << eobject.io_ptr;
 			case Types::custom:
 			{
 				const Aliases::CustomT& custom = eobject.get<Aliases::CustomT>();
