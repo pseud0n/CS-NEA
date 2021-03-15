@@ -519,6 +519,18 @@ o = make_monadic_method<Aliases::NumT, Aliases::NumT>(
 
 o = make_monadic_method<Aliases::NumT, Aliases::NumT>(
 	[](Aliases::NumT* num) -> Aliases::NumT {
+		return ++*num;
+	}
+); EMPLACE("PreInc")
+
+o = make_monadic_method<Aliases::NumT, Aliases::NumT>(
+	[](Aliases::NumT* num) -> Aliases::NumT {
+		return (*num)++;
+	}
+); EMPLACE("PostInc")
+
+o = make_monadic_method<Aliases::NumT, Aliases::NumT>(
+	[](Aliases::NumT* num) -> Aliases::NumT {
 		print("FACT!!");
 		if (*num < 0) {
 			THROW_ERROR(Exceptions::out_of_range(*num))
