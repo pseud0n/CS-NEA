@@ -238,7 +238,7 @@ namespace UL {
 			#endif
 		}
 	} // namespace Tracker
-	#define UL_LMBD [&](UL::CppFunction const* argument_data, std::vector<UL::ExternalObject>& arguments) -> UL::ExternalObject
+	#define UL_LMBD [&](UL::CppFunction* argument_data, std::vector<UL::ExternalObject>& arguments) -> UL::ExternalObject
 	//Macro for defining the lambda for a CppFunction as `DY_LMBD { stuff }`
 	using LambdaT = std::function<ExternalObject(UL::CppFunction const*, std::vector<UL::ExternalObject>&)>;
 } // namespace UL
@@ -447,7 +447,7 @@ ADD_OBJECT(base_exception, "ExcBase")
 	template <typename T, typename R=ExternalObject>
 	ExternalObject make_monadic_method (std::function<R(T*)>&& code) {
 		return ExternalObject::emplace<Aliases::CppFunctionT>(
-			CppFunction::empty_eobject_vec, false, UL_LMBD {
+			make_eo_vec(), false, UL_LMBD {
 				GetCorrespondingType<T> *self_obj; // Argument stored in function view
 				if (!argument_data->assign_args<1>(arguments, self_obj)) {
 					return nullptr;

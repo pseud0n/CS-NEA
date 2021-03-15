@@ -109,7 +109,7 @@ class_ptr->try_emplace("MRO", MKRRY_W(Classes::object)); // Array of weak refere
 print("class_ptr:", Classes::cls, *class_ptr);
 
 o = ExternalObject::emplace<Aliases::CppFunctionT>(
-	CppFunction::empty_eobject_vec, true, UL_LMBD {
+	make_eo_vec(), true, UL_LMBD {
 		ExternalObject *self = nullptr;
 		argument_data->assign_args<1>(arguments, self);
 		print("DEEP COPYING", *self);
@@ -119,7 +119,7 @@ o = ExternalObject::emplace<Aliases::CppFunctionT>(
 ); EMPLACE("Copy")
 
 o = ExternalObject::emplace<Aliases::CppFunctionT>(
-	CppFunction::empty_eobject_vec, true, UL_LMBD {
+	make_eo_vec(), true, UL_LMBD {
 		ExternalObject *self = nullptr, *other = nullptr;
 		argument_data->assign_args<2>(arguments, self, other);
 		Types self_type = self->type(), other_type = other->type();
@@ -145,7 +145,7 @@ o = ExternalObject::emplace<Aliases::CppFunctionT>(
 ); EMPLACE("Eq")
 
 o = ExternalObject::emplace<Aliases::CppFunctionT>(
-	CppFunction::empty_eobject_vec, true, UL_LMBD {
+	make_eo_vec(), true, UL_LMBD {
 		ExternalObject *self = nullptr, *other = nullptr;
 		argument_data->assign_args<2>(arguments, self, other);
 		return get_object_as_bool(*self) && get_object_as_bool(*other);
@@ -153,7 +153,7 @@ o = ExternalObject::emplace<Aliases::CppFunctionT>(
 ); EMPLACE("And")
 
 o = ExternalObject::emplace<Aliases::CppFunctionT>(
-	CppFunction::empty_eobject_vec, true, UL_LMBD {
+	make_eo_vec(), true, UL_LMBD {
 		ExternalObject *self = nullptr, *other = nullptr;
 		argument_data->assign_args<2>(arguments, self, other);
 		return get_object_as_bool(*self) || get_object_as_bool(*other);
@@ -173,7 +173,7 @@ ADD_BASIC_MRO(cls)
 print(Classes::cls, Classes::object);
 print(Classes::cls.refcount(), Classes::object.refcount());
 o = ExternalObject::emplace<Aliases::CppFunctionT>(
-	CppFunction::empty_eobject_vec, true, UL_LMBD {
+	make_eo_vec(), true, UL_LMBD {
 		print("In constructor", arguments);
 		Plumber::get();
         ExternalObject *cls;
@@ -371,7 +371,7 @@ o = make_monadic_method<Aliases::NullT, Aliases::BoolT>(
 ); EMPLACE("ToBool")
 
 o = ExternalObject::emplace<Aliases::CppFunctionT>(
-	CppFunction::empty_eobject_vec, true, UL_LMBD {
+	make_eo_vec(), true, UL_LMBD {
 		ExternalObject *self = nullptr, *other = nullptr;
 		argument_data->assign_args<2>(arguments, self, other);
 		return true;
@@ -398,7 +398,7 @@ ADD_BASIC_MRO(string)
 print(Classes::string.get<Aliases::CustomT>(),Classes::cls.get<Aliases::CustomT>(),Classes::object.get<Aliases::CustomT>());
 
 o = ExternalObject::emplace<Aliases::CppFunctionT>(
-	CppFunction::empty_eobject_vec, true, UL_LMBD {
+	make_eo_vec(), true, UL_LMBD {
 		ExternalObject *self = nullptr, *other = nullptr;
 		argument_data->assign_args<2>(arguments, self, other);
 		return *self == *other;
@@ -448,7 +448,7 @@ o = make_monadic_method<Aliases::StringT, size_t>(
 ); EMPLACE("Length")
 
 o = ExternalObject::emplace<Aliases::CppFunctionT>(
-	CppFunction::empty_eobject_vec, true, UL_LMBD {
+	make_eo_vec(), true, UL_LMBD {
 	std::string *self = nullptr, *other = nullptr;
 	if (!argument_data->assign_args<2>(arguments, self, other)) {
 		return nullptr;
@@ -460,7 +460,7 @@ o = ExternalObject::emplace<Aliases::CppFunctionT>(
 ); EMPLACE("Add")
 
 o = ExternalObject::emplace<Aliases::CppFunctionT>(
-	CppFunction::empty_eobject_vec, true, UL_LMBD {
+	make_eo_vec(), true, UL_LMBD {
 		std::string *self = nullptr;
 		Aliases::NumT *index = nullptr;
 		argument_data->assign_args<2>(arguments, self, index);
@@ -483,7 +483,7 @@ REASSIGN(integer)
 ADD_BASIC_MRO(integer)
 
 o = ExternalObject::emplace<Aliases::CppFunctionT>(
-	CppFunction::empty_eobject_vec, true, UL_LMBD {
+	make_eo_vec(), true, UL_LMBD {
 		ExternalObject *self = nullptr, *other = nullptr;
 		argument_data->assign_args<2>(arguments, self, other);
 		return *self == *other;
@@ -520,7 +520,7 @@ o = make_monadic_method<Aliases::NumT, Aliases::NumT>(
 ); EMPLACE("Fact")
 
 o = ExternalObject::emplace<Aliases::CppFunctionT>(
-	CppFunction::empty_eobject_vec, true, UL_LMBD {
+	make_eo_vec(), true, UL_LMBD {
 		Aliases::NumT *self = nullptr, *other = nullptr;
 		argument_data->assign_args<2>(arguments, self, other);
 		Aliases::NumT result = *self + *other;
@@ -529,7 +529,7 @@ o = ExternalObject::emplace<Aliases::CppFunctionT>(
 ); EMPLACE("Add")
 
 o = ExternalObject::emplace<Aliases::CppFunctionT>(
-	CppFunction::empty_eobject_vec, true, UL_LMBD {
+	make_eo_vec(), true, UL_LMBD {
 		Aliases::NumT *self = nullptr, *other = nullptr;
 		if (!argument_data->assign_args<2>(arguments, self, other)) {
 			return nullptr;
@@ -540,7 +540,7 @@ o = ExternalObject::emplace<Aliases::CppFunctionT>(
 ); EMPLACE("Sub")
 
 o = ExternalObject::emplace<Aliases::CppFunctionT>(
-	CppFunction::empty_eobject_vec, true, UL_LMBD {
+	make_eo_vec(), true, UL_LMBD {
 		Aliases::NumT *self = nullptr, *other = nullptr;
 		if (!argument_data->assign_args<2>(arguments, self, other)) {
 			return nullptr;
@@ -552,7 +552,7 @@ o = ExternalObject::emplace<Aliases::CppFunctionT>(
 
 
 o = ExternalObject::emplace<Aliases::CppFunctionT>(
-	CppFunction::empty_eobject_vec, true, UL_LMBD {
+	make_eo_vec(), true, UL_LMBD {
 		Aliases::NumT *self = nullptr, *other = nullptr;
 		if (!argument_data->assign_args<2>(arguments, self, other)) {
 			return nullptr;
@@ -563,7 +563,7 @@ o = ExternalObject::emplace<Aliases::CppFunctionT>(
 ); EMPLACE("Mod")
 
 o = ExternalObject::emplace<Aliases::CppFunctionT>(
-	CppFunction::empty_eobject_vec, true, UL_LMBD {
+	make_eo_vec(), true, UL_LMBD {
 		Aliases::NumT *self, *other;
 		argument_data->assign_args<2>(arguments, self, other);
 		//cout <<"Pow:" << *self << " " << *other << " " << (*other < 0);
@@ -581,7 +581,7 @@ o = ExternalObject::emplace<Aliases::CppFunctionT>(
 ); EMPLACE("Div")
 
 o = ExternalObject::emplace<Aliases::CppFunctionT>(
-	CppFunction::empty_eobject_vec, true, UL_LMBD {
+	make_eo_vec(), true, UL_LMBD {
 		Aliases::NumT *self = nullptr, *other = nullptr;
 		if (!argument_data->assign_args<2>(arguments, self, other)) {
 			return nullptr;
@@ -592,7 +592,7 @@ o = ExternalObject::emplace<Aliases::CppFunctionT>(
 ); EMPLACE("Call")
 
 o = ExternalObject::emplace<Aliases::CppFunctionT>(
-	CppFunction::empty_eobject_vec, true, UL_LMBD {
+	make_eo_vec(), true, UL_LMBD {
 		Aliases::NumT *self, *other;
 		argument_data->assign_args<2>(arguments, self, other);
 		//cout <<"Pow:" << *self << " " << *other << " " << (*other < 0);
@@ -614,7 +614,7 @@ REASSIGN(array)
 ADD_BASIC_MRO(array)
 
 o = ExternalObject::emplace<Aliases::CppFunctionT>(
-	CppFunction::empty_eobject_vec, true, UL_LMBD {
+	make_eo_vec(), true, UL_LMBD {
 		Aliases::ArrayT *self = nullptr;
 		ExternalObject *head = nullptr;
 		std::vector<ExternalObject*> tail;
@@ -631,7 +631,7 @@ o = ExternalObject::emplace<Aliases::CppFunctionT>(
 ); EMPLACE("append")
 
 o = ExternalObject::emplace<Aliases::CppFunctionT>(
-	CppFunction::empty_eobject_vec, true, UL_LMBD {
+	make_eo_vec(), true, UL_LMBD {
 	Aliases::ArrayT *self = nullptr;
 	Aliases::NumT *index = nullptr;
 	argument_data->assign_args<2>(arguments, self, index);
@@ -641,7 +641,7 @@ o = ExternalObject::emplace<Aliases::CppFunctionT>(
 ); EMPLACE("Call")
 
 o = ExternalObject::emplace<Aliases::CppFunctionT>(
-	CppFunction::empty_eobject_vec, true, UL_LMBD {
+	make_eo_vec(), true, UL_LMBD {
 		Aliases::ArrayT *self, *other;
 		argument_data->assign_args<2>(arguments, self, other);
 		//cout <<"Pow:" << *self << " " << *other << " " << (*other < 0);
@@ -674,7 +674,7 @@ o = make_monadic_method<Aliases::BaseExceptionT, ExternalObject>(
 */
 
 o = ExternalObject::emplace<Aliases::CppFunctionT>(
-	CppFunction::empty_eobject_vec, true, UL_LMBD {
+	make_eo_vec(), true, UL_LMBD {
 		Aliases::BaseExceptionT *exc = nullptr;
 		if (!argument_data->assign_args<1>(arguments, exc)) {
 			return nullptr;
@@ -694,11 +694,20 @@ ADD_BASIC_MRO(code_block)
 REASSIGN(if_chain)
 ADD_BASIC_MRO(if_chain)
 
-o = ExternalObject::emplace<Aliases::CppFunctionT>(
-	CppFunction::empty_eobject_vec, true, UL_LMBD {
+print("Reassigned to If");
+
+CppFunction temp(
+	make_eo_vec(), false, UL_LMBD {
 		Aliases::IfT *self = nullptr;
 		ExternalObject *other = nullptr;
-		argument_data->assign_args<2>(arguments, self, other);
+		argument_data->assign_args<1>(arguments, self, other);
+		//print("self:", *self, "other:", *other);
+		print(argument_data->optional_arguments);
+		print("other:", other);
+		if (other->is_null()) {
+			self->evaluate();
+			return nullptr;
+		}
 		Types arg_2_type = other->get_enum_type();
 		print("Calling If", arg_2_type);
 		if (arg_2_type == Types::code_block) {
@@ -713,8 +722,20 @@ o = ExternalObject::emplace<Aliases::CppFunctionT>(
 			THROW_ERROR(Exceptions::arg_types_wrong(arguments))
 		}
 		print("Finished call");
-	}
-); EMPLACE("Call")
+		return *self;
+	}, std::vector<Types>{Types::if_chain, Types::any}
+);
+
+temp.optional_arguments = std::vector<ExternalObject>{nullptr};
+
+print("temp", temp.optional_arguments);
+
+o = std::move(temp);
+
+print("o", o, o.get<Aliases::CppFunctionT>().optional_arguments);
+std::cin.get();
+
+EMPLACE("Call")
 
 #undef ADD_BASIC_MRO
 #undef EMPLACE
@@ -796,7 +817,7 @@ v[0] = Classes::object;
 */
 
 all_builtins.emplace("SpPuts",
-	CppFunction(CppFunction::empty_eobject_vec, true, UL_LMBD {
+	CppFunction(make_eo_vec(), true, UL_LMBD {
 		std::vector<ExternalObject*> objects;
 		if (!argument_data->assign_variadic_args<0>(arguments, objects))
 			return nullptr;
@@ -818,7 +839,7 @@ all_builtins.emplace("SpPuts",
 );
 
 all_builtins.emplace("Puts",
-	CppFunction(CppFunction::empty_eobject_vec, true, UL_LMBD {
+	CppFunction(make_eo_vec(), true, UL_LMBD {
 		std::vector<ExternalObject*> objects;
 		argument_data->assign_variadic_args<0>(arguments, objects);
 #ifdef SHOW_CLOG
@@ -837,7 +858,7 @@ all_builtins.emplace("Puts",
 );
 
 all_builtins.emplace("PutNL",
-	CppFunction(CppFunction::empty_eobject_vec, false, UL_LMBD {
+	CppFunction(make_eo_vec(), false, UL_LMBD {
 			argument_data->assign_args<0>(arguments);
 			cout << "\n";
 			return nullptr;
@@ -846,7 +867,7 @@ all_builtins.emplace("PutNL",
 );
 
 all_builtins.emplace("GetLine",
-	CppFunction(make_eo_vec(""s), false, UL_LMBD {
+	CppFunction(make_eo_vec("Success!!!"s), false, UL_LMBD {
 			std::string *str, input_line;
 			// input_line is not a pointer because C++ syntax is weird
 			argument_data->assign_args<0>(arguments, str);
@@ -857,18 +878,14 @@ all_builtins.emplace("GetLine",
 #ifdef SHOW_CLOG
 			cout << FBG_DEFAULT;
 #endif
-			print("Getting input line");
-			//std::cin >> input_line; does not allow empty line
 			std::getline(std::cin, input_line);
-			print("Got input line! :)");
 			return input_line;
-			//return "aaaaa"s;
 		}
 	)
 );
 
 all_builtins.emplace("Len",
-	CppFunction(CppFunction::empty_eobject_vec, false, UL_LMBD {
+	CppFunction(make_eo_vec(), false, UL_LMBD {
 			argument_data->assign_args<0>(arguments);
 			cout << "\n";
 			return nullptr;
@@ -877,7 +894,7 @@ all_builtins.emplace("Len",
 );
 
 all_builtins.emplace("_CppEnum",
-	CppFunction(CppFunction::empty_eobject_vec, false, UL_LMBD {
+	CppFunction(make_eo_vec(), false, UL_LMBD {
 			ExternalObject *obj;
 			argument_data->assign_args<1>(arguments, obj);
 			std::ostringstream oss;
@@ -888,7 +905,7 @@ all_builtins.emplace("_CppEnum",
 );
 
 all_builtins.emplace("_CppEnumDeep",
-	CppFunction(CppFunction::empty_eobject_vec, false, UL_LMBD {
+	CppFunction(make_eo_vec(), false, UL_LMBD {
 			ExternalObject *obj;
 			argument_data->assign_args<1>(arguments, obj);
 			std::ostringstream oss;
