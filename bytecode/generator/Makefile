@@ -7,9 +7,7 @@ FLEX_PATH = $(shell dirname $(shell which flex))
 LIB_PATH = $(shell readlink -f "$(FLEX_PATH)/../lib")
 
 ../../output/parser.out: calc.tab.h lex.yy.c ../../output/operators.out ../instructions_enum.h dir_macros.h Makefile
-	@echo "Flex:" $(LIB_PATH)
-	@echo "Flex:" $(shell ls $(LIB_PATH))
-	clang -o ../../output/parser.out calc.tab.c lex.yy.c -L $(LIB_PATH) -lfl -lm -Wall -g \
+	clang -o ../../output/parser.out calc.tab.c lex.yy.c -L $(LIB_PATH) -lfl -lm -Wall -g
 
 lex.yy.c: calc.l calc.tab.h
 	flex calc.l
